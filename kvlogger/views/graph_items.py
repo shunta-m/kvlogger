@@ -2,9 +2,9 @@
 from typing import List, Tuple
 
 import numpy as np
-from PySide6 import QtGui
+from PySide6.QtGui import QColor
 from PySide6.QtCore import Slot, Signal, QPointF
-
+from PySide6.QtWidgets import QGraphicsWidget, QGraphicsGridLayout
 import pyqtgraph as pg
 
 
@@ -53,7 +53,7 @@ class SortableCurve(pg.PlotCurveItem):
         """
 
         if self.mouseShape().contains(coord):
-            info: Tuple[str, QtGui.QColor] = self.opts['name'], self.opts['pen'].color()
+            info: Tuple[str, QColor] = self.opts['name'], self.opts['pen'].color()
 
             idx_y: int = np.argmin(np.abs(coord.y() - self.yData))
             x_diff: float = np.min(np.abs(coord.x() - self.xData[idx_y]))
@@ -98,3 +98,51 @@ class SortableCurve(pg.PlotCurveItem):
             cls.nearest[1] = y_diff
             result = True
         return result
+
+
+class PlotLabel(QGraphicsWidget):
+    """プロットタイトル
+
+    Attributes
+    ----------
+    curve_label: pg.LabelItem
+        curve名表示ラベル
+    x_label: pg.LabelItem
+        x座標表示ラベル
+    y_label: pg.LabelItem
+        y座標表示ラベル
+    """
+
+    def __init__(self, y_label: str, *args, **kwargs) -> None:
+        """初期化処理
+
+        Parameters
+        ----------
+        y_label: str
+            y座標ラベル
+        """
+
+        super(PlotLabel, self).__init__(*args, **kwargs)
+        self.curve_label = pg.LabelItem()
+        self.x_label = pg.LabelItem()
+        self.y_label = pg.LabelItem()
+
+        prefix_curve = pg.LabelItem('Curve: ', justify='left')
+        prefix_x = pg.LabelItem('Time: ', justify='left')
+        prefix_y = pg.LabelItem(f"{y_label}", justify='left')
+
+        layout = QGraphicsGridLayout()
+        layout.setContentsMargins(1, 1, 1, 1)
+        layout.setSpacing(0)
+        layout.addItem(prefix_curve, 0, 0)
+        layout.addItem(self.curve_label, 0, 1)
+        layout.addItem(prefix_x, 0, 2)
+        layout.addItem(self.x_label, 0, 3)
+        layout.addItem(prefix_y, 0, 4)
+        layout.addItem(self.y_label, 0, 5)
+
+        self.setLayout(layout)
+
+        layout.setColumnStretchFactor(1, 2)
+        layout.setColumnStretchFactor(3, 1)
+        layout.setColumnStretchFactor(5, 1)
