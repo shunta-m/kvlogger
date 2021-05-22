@@ -1,10 +1,11 @@
 """UIで使用するグラフアイテム"""
-from typing import List, Tuple
+import datetime as dt
+from typing import Callable, List, Tuple, Union
 
 import numpy as np
 from PySide6.QtGui import QColor
 from PySide6.QtCore import Slot, Signal, QPointF
-from PySide6.QtWidgets import QGraphicsWidget, QGraphicsGridLayout
+from PySide6.QtWidgets import QApplication, QGraphicsWidget, QGraphicsGridLayout
 import pyqtgraph as pg
 
 
@@ -146,3 +147,139 @@ class PlotLabel(QGraphicsWidget):
         layout.setColumnStretchFactor(1, 2)
         layout.setColumnStretchFactor(3, 1)
         layout.setColumnStretchFactor(5, 1)
+
+
+class TimeAxisItem(pg.AxisItem):
+    """時間軸
+
+    Attributes
+    ----------
+    format_: str
+        日付表示 or 経過時間表示
+    start_time: dt.datetime
+        初期時刻
+    """
+
+    interval: float = 1.0
+
+    def __init__(self, format_: str, alpha: float = 0.8, **kwargs) -> None:
+        """初期化処理
+
+        Parameters
+        ----------
+        format_: str
+            表示する時刻形式. 'date' or 'elapsed'
+        alpha: float default=0.8
+            x軸のグリッド線の透明度. 0.0 - 1.0の間.
+        """
+
+        self.format_: str = format_
+        self.start_time = dt.datetime.now()
+
+        super().__init__(orientation='bottom', **kwargs)
+        if self.format_ == 'date':
+            self.setLabel(text='Time', units=None)
+        elif self.format_ == 'elapsed':
+            self.setLabel(text='Elapsed time', units='s')
+        else:
+            raise ValueError('format_は"date"か"elapsed"です')
+
+        self.converter: Callable = self.select_converter()
+        self.setGrid(alpha * 255)
+
+    def select_converter(self) -> Callable:
+        """x軸表示を時刻か経過時間か選択する
+
+        Returns
+        ----------
+        converter: Callable
+            x軸表示を変換する関数
+        """
+
+        def convert_date(values: list) -> List[str]:
+            """時刻列変換関数"""
+
+            def convert(value: float) -> str:
+                date: dt.datetime = self.start_time + dt.timedelta(seconds=value * self.interval)
+                return date.strftime('%y/%m/%d %H:%M:%S')
+
+            return list(map(convert, values))
+
+        def convert_elapsed(values: list) -> np.ndarray:
+            """経過時間列変換関数
+            表示中の0点から最大値までの経過時間を作成する
+            """
+            return np.array(values) * self.interval
+
+        if self.format_ == 'date':
+            return convert_date
+        return convert_elapsed
+
+    def tickStrings(self, values, scale, spacing):
+        """override. x tick表示"""
+
+        return self.converter(values)
+
+    @classmethod
+    def calc_interval(cls, value: float, unit: str) -> None:
+        """x軸表示を時刻か経過時間か選択する
+
+        Parameters
+        ----------
+        value: float
+            測定間隔
+        unit: str
+            時間単位
+        """
+
+        if unit == 's':
+            cls.interval = value
+        elif unit == 'min':
+            cls.interval = value * 60
+        elif unit == 'h':
+            cls.interval = value * 3600
+        else:
+            raise ValueError('intervalは"s", "min", "h"のどれかです')
+
+
+class SamplePlot(pg.PlotItem):
+    def __init__(self, *args, **kwargs) -> None:
+        super(SamplePlot, self).__init__(*args, **kwargs)
+
+
+if __name__ == '__main__':
+    import sys
+
+    data = np.linspace(0, 100, 30)
+
+    app = QApplication(sys.argv)
+
+    plot = SamplePlot(title='test')
+    MainPlot = pg.PlotWidget(plotItem=plot)
+    # win.addItem(plot)
+
+    TimeAxisItem.calc_interval(60, 's')
+    plot.setAxisItems({'bottom': TimeAxisItem('date')})
+    AuxPlot = TimeAxisItem('elapsed', alpha=0, linkView=plot.vb)
+    # MainPlot.showAxis('top')
+    # MainPlot.scene().addItem(AuxPlot)
+    # AuxPlot.setGeometry(MainPlot.getPlotItem().vb.sceneBoundingRect())
+    # MainPlot.getAxis('top').linkToView(AuxPlot)
+    # plot.scene().addItem(AuxPlot)
+    # plot.showAxis('bottom')
+    # AuxPlot.setGeometry(plot.vb.sceneBoundingRect())
+    # AuxPlot.linkToView(plot.vb)
+    # plot.axes['bottom'] = {"item": AuxPlot, "pos": [3, 1]}
+    print(plot.layout)
+    plot.layout.addItem(AuxPlot, 4, 1)
+    plot.layout.setContentsMargins(1, 1, 1, 1)
+    plot.layout.setVerticalSpacing(10)
+
+    # plot.layout.setRowStretchFactor(1, 3)
+    # plot.layout.setRowStretchFactor(2, 10)
+    # plot.layout.setRowStretchFactor(3, 3)
+    # plot.layout.setRowStretchFactor(4, 4)
+
+    plot.plot(data)
+    MainPlot.show()
+    sys.exit(app.exec())
