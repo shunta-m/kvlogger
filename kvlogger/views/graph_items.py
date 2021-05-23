@@ -1,11 +1,11 @@
 """UIで使用するグラフアイテム"""
 import datetime as dt
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 from PySide6.QtGui import QColor
 from PySide6.QtCore import Slot, Signal, QPointF
-from PySide6.QtWidgets import QApplication, QGraphicsWidget, QGraphicsGridLayout
+from PySide6.QtWidgets import QGraphicsWidget, QGraphicsGridLayout
 import pyqtgraph as pg
 
 
@@ -54,7 +54,7 @@ class SortableCurve(pg.PlotDataItem):
         """
 
         if self.mouseShape().contains(coord):
-            info: Tuple[str, QColor] = self.opts['name'], self.opts['pen'].color()
+            info: Tuple[str, QColor] = self.opts['name'], QColor(*self.opts['pen'])
 
             idx_y: int = np.argmin(np.abs(coord.y() - self.yData))
             x_diff: float = np.min(np.abs(coord.x() - self.xData[idx_y]))
@@ -119,7 +119,7 @@ class RegionCurve(SortableCurve):
         self.region.setRegion((0, 0))
         self.region.setZValue(10)
 
-    def added_item(self, widget: pg.PlotItem) -> None:
+    def added(self, widget: pg.PlotItem) -> None:
         """自身とregionをwidgetに追加する
 
         Parameters
@@ -128,14 +128,28 @@ class RegionCurve(SortableCurve):
             追加するプロットアイテム
         """
 
-        widget.addItem(self, ignoreBounds=False)
-        widget.addItem(self.region, ignoreBounds=True)
+        if self not in widget.items:
+            widget.addItem(self, ignoreBounds=False)
+            widget.addItem(self.region, ignoreBounds=True)
 
     def reset_region(self) -> None:
         """regionをリセットする"""
 
         self.min_, self.max_ = 0, 0
         self.region.setRegion((self.min_, self.max_))
+
+    def removed(self, widget: pg.PlotItem) -> None:
+        """自身とregionをwidgetから削除する
+
+        Parameters
+        ----------
+        widget: pg.PlotItem
+            curveとregionを削除するプロットアイテム
+        """
+
+        if self in widget.items:
+            widget.removeItem(self)
+            widget.removeItem(self.region)
 
     def set_data(self, values: np.ndarray) -> None:
         """測定値をグラフ表示する. regionの範囲を最大、最小値に合わせる
@@ -147,10 +161,8 @@ class RegionCurve(SortableCurve):
         """
 
         min_, max_ = np.min(values), np.max(values)
-        if self.min_ > min_:
-            self.min_ = min_
-        if self.max_ < max_:
-            self.max_ = max_
+        self.min_ = min(self.min_, min_)
+        self.max_ = max(self.max_, max_)
 
         self.setData(values)
         self.region.setRegion((self.min_, self.max_))
@@ -222,6 +234,21 @@ class CursorLabel(QGraphicsWidget):
         layout.setColumnStretchFactor(3, 1)
         layout.setColumnStretchFactor(5, 1)
 
+    @Slot(int, QPointF)
+    def set_coord_text(self, _: int, coord: QPointF) -> None:
+        """座標ラベル表示
+
+        Parameters
+        ----------
+        _: int
+            使わない
+        coord: QtCore.QPointF
+            マウス座標
+        """
+
+        self.x_label.setText(TimeAxisItem.calc_time(coord.x()))
+        self.y_label.setText(f"{coord.y():.3e}")
+
 
 class TimeAxisItem(pg.AxisItem):
     """時間軸
@@ -235,6 +262,7 @@ class TimeAxisItem(pg.AxisItem):
     """
 
     interval: float = 1.0
+    start_time: dt.datetime = dt.datetime.now()
 
     def __init__(self, format_: str, alpha: float = 0.8, **kwargs) -> None:
         """初期化処理
@@ -248,7 +276,6 @@ class TimeAxisItem(pg.AxisItem):
         """
 
         self.format_: str = format_
-        self.start_time = dt.datetime.now()
 
         super().__init__(**kwargs)
         if self.format_ == 'date':
@@ -286,8 +313,8 @@ class TimeAxisItem(pg.AxisItem):
             表示中の0点から最大値までの経過時間を作成する
             """
 
-            ar: np.ndarray = np.array(values) * self.interval
-            return ar.tolist()
+            array: np.ndarray = np.array(values) * self.interval
+            return np.round(array, decimals=3).tolist()
 
         if self.format_ == 'date':
             return convert_date
@@ -319,57 +346,160 @@ class TimeAxisItem(pg.AxisItem):
         else:
             raise ValueError('intervalは"s", "min", "h"のどれかです')
 
+    @classmethod
+    def calc_time(cls, value: float) -> str:
+        """その時点での時刻を計算する
+
+        Parameters
+        ----------
+        value: float
+            時刻を知りたいポイント
+
+        Returns
+        -------
+        time: str
+            時刻
+        """
+
+        elapsed: float = value * cls.interval
+        time_point = cls.start_time + dt.timedelta(seconds=elapsed)
+        return time_point.strftime('%y/%m/%d %H:%M:%S')
+
+    @classmethod
+    def update_start_time(cls) -> None:
+        """測定開始時間を更新する"""
+
+        cls.start_time = dt.datetime.now()
+
 
 class MainPlot(pg.GraphicsLayoutWidget):
     """x軸が複数あるプロット
 
     Attributes
     ----------
+    emit_no: int
+        sigMouseMoved(pg.PlotItemのシグナル)を受け取ったタイミングを判別する変数.
+    curves: Dict[int, RegionCurve]
+
     labels: CursorLabel
         マウスカーソル位置表示用ラベル
     plot: pg.PlotItem
         プロット
     """
 
-    def __init__(self, ylabel: str, *args, **kwargs) -> None:
+    mouseMoved = Signal(int, QPointF)
+
+    def __init__(self, ylabel: str, items: List[str], *args, **kwargs) -> None:
         """初期化処理
 
         Parameters
         ----------
         ylabel: str
             y軸ラベル
+        items: List[str]
+            追加するcurve名
         """
 
+        self.emit_no = 0
+        self.curves: Dict[int, RegionCurve] = {}
         super(MainPlot, self).__init__(*args, **kwargs)
 
-        self.labels = CursorLabel(ylabel)
-        self.plot = pg.PlotItem(labels={'left': ylabel})
+        self.labels: CursorLabel = CursorLabel(ylabel)
+        self.plot: pg.PlotItem = pg.PlotItem(labels={'left': ylabel})
         self.plot.showGrid(y=True, alpha=0.8)
 
         self.addItem(self.labels, 0, 0)
         self.addItem(self.plot, 1, 0)
 
         self.plot.setAxisItems({'bottom': TimeAxisItem('date', orientation='bottom')})
-        sub_xaxis: TimeAxisItem = TimeAxisItem('elapsed', alpha=0, orientation='bottom', linkView=self.plot.vb)
+        sub_xaxis: TimeAxisItem = TimeAxisItem('elapsed', alpha=0,
+                                               orientation='bottom', linkView=self.plot.vb)
         sub_xaxis.setZValue(-1000)
         self.plot.layout.addItem(sub_xaxis, 4, 1)
         self.plot.layout.setVerticalSpacing(10)
+
+        self.mouseMoved.connect(self.labels.set_coord_text)
+        self.proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved,
+                                    rateLimit=60,
+                                    slot=self.get_mouse_position)
+
+        self.add_curve(items)
+
+    def add_curve(self, items: List[str]) -> None:
+        """プロットするcurveを追加する
+
+        Parameters
+        ----------
+        items: List[str]
+            追加するcurve名
+        """
+
+        for num, item in enumerate(items):
+            curve: RegionCurve = RegionCurve(num, name=item)
+            curve.added(self.plot)
+            self.curves[num] = curve
+
+    def get_mouse_position(self, event: Tuple[QPointF]) -> None:
+        """
+
+        Parameters
+        ----------
+        event: Tuple[QtCore.QPointF]
+            画面のピクセル座標
+        """
+
+        self.emit_no += 1
+        if self.emit_no == 128:
+            self.emit_no = 0
+
+        pos = event[0]
+        if not self.plot.sceneBoundingRect().contains(pos):
+            # posがplot内の座標ではなかったら終了
+            return
+
+        # グラフの座標取得
+        # ex) coord=PyQt5.QtCore.QPointF(141.6549821809388, 4.725564511858496)
+        coord = self.plot.vb.mapSceneToView(pos)
+        self.mouseMoved.emit(self.emit_no, coord)
+
+    @Slot(int, bool)
+    def switch_curve_visible(self, number: int, visible: bool) -> None:
+        """curveとregionの表示を切り替える
+
+        Parameters
+        ----------
+        number: int
+            curve番号
+        visible: bool
+            表示 / 非表示判定
+        """
+
+        if number not in self.curves:
+            raise ValueError('番号が存在していません')
+        if visible:
+            self.curves[number].added(self.plot)
+        else:
+            self.curves[number].removed(self.plot)
 
 
 if __name__ == '__main__':
     import sys
 
+    from PySide6.QtWidgets import QApplication
+
     data = np.linspace(0, 100, 1001)
 
     app = QApplication(sys.argv)
 
-    plot = MainPlot('test')
+    plot = MainPlot('test', ['test1', 'test2'])
 
-    TimeAxisItem.calc_interval(60, 's')
+    plot.curves[0].set_data(data)
 
-    rc = RegionCurve(0)
-    rc.added_item(plot.plot)
-    rc.set_data(data)
-    rc.switch_region_visible(plot.plot, False)
+    plot.switch_curve_visible(0, False)
+    plot.curves[0].switch_region_visible(plot.plot, True)
+    plot.curves[1].set_data(-1 * data)
+
+    TimeAxisItem.calc_interval(1, 's')
+
     plot.show()
     sys.exit(app.exec())
