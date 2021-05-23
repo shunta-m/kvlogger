@@ -41,7 +41,7 @@ class SortableCurve(pg.PlotDataItem):
         self.number: int = number
         super(SortableCurve, self).__init__(*args, **kwargs)
 
-    @Slot(int, QPointF, result=None)
+    @Slot(int, QPointF)
     def send_info(self, emit_num: int, coord: QPointF) -> None:
         """
 
@@ -53,8 +53,8 @@ class SortableCurve(pg.PlotDataItem):
             マウスカーソルがあるグラフ座標
         """
 
-        if self.mouseShape().contains(coord):
-            info: Tuple[str, QColor] = self.opts['name'], QColor(*self.opts['pen'])
+        if self.curve.mouseShape().contains(coord):
+            info: Tuple[str, tuple] = self.opts['name'], self.opts['pen']
 
             idx_y: int = np.argmin(np.abs(coord.y() - self.yData))
             x_diff: float = np.min(np.abs(coord.x() - self.xData[idx_y]))
@@ -63,7 +63,7 @@ class SortableCurve(pg.PlotDataItem):
             y_diff: float = np.min(np.abs(coord.y() - self.yData[idx_x]))
 
             if self.select_emitter(emit_num, x_diff, y_diff):
-                self.sigSendInfo.emit(info)
+                self.sigSentInfo.emit(info)
 
     @classmethod
     def select_emitter(cls, emit_num: int, x_diff: float, y_diff: float) -> bool:
@@ -210,9 +210,9 @@ class CursorLabel(QGraphicsWidget):
         """
 
         super(CursorLabel, self).__init__(*args, **kwargs)
-        self.curve_label = pg.LabelItem()
-        self.x_label = pg.LabelItem()
-        self.y_label = pg.LabelItem()
+        self.curve_label = pg.LabelItem(justify='left')
+        self.x_label = pg.LabelItem(justify='left')
+        self.y_label = pg.LabelItem(justify='left')
 
         prefix_curve = pg.LabelItem('Curve: ', justify='left')
         prefix_x = pg.LabelItem('Time: ', justify='left')
@@ -248,6 +248,19 @@ class CursorLabel(QGraphicsWidget):
 
         self.x_label.setText(TimeAxisItem.calc_time(coord.x()))
         self.y_label.setText(f"{coord.y():.3e}")
+
+    @Slot(tuple)
+    def set_curve_label(self, info: Tuple[str, tuple]) -> None:
+        """curveラベル表示
+
+        Parameters
+        ----------
+        info: Tuple[str, tuple]
+            curve名と色
+        """
+
+        self.curve_label.setText(info[0], color=info[1])
+        # self.update()
 
 
 class TimeAxisItem(pg.AxisItem):
@@ -436,6 +449,8 @@ class MainPlot(pg.GraphicsLayoutWidget):
 
         for num, item in enumerate(items):
             curve: RegionCurve = RegionCurve(num, name=item)
+            curve.sigSentInfo.connect(self.labels.set_curve_label)
+            self.mouseMoved.connect(curve.send_info)
             curve.added(self.plot)
             self.curves[num] = curve
 
@@ -495,8 +510,8 @@ if __name__ == '__main__':
 
     plot.curves[0].set_data(data)
 
-    plot.switch_curve_visible(0, False)
-    plot.curves[0].switch_region_visible(plot.plot, True)
+    # plot.switch_curve_visible(0, False)
+    # plot.curves[0].switch_region_visible(plot.plot, True)
     plot.curves[1].set_data(-1 * data)
 
     TimeAxisItem.calc_interval(1, 's')
