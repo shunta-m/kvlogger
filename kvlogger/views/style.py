@@ -1,7 +1,52 @@
 """UIのスタイルを記載"""
+from typing import Sequence
 from colour import Color
 import numpy as np
 from PySide6.QtGui import QFont
+
+
+def curve_check(color: str, flag: int) -> str:
+    if flag == 1:
+        return f"""QCheckBox {{font-size:12pt;}}
+                   QCheckBox::indicator {{Background-color: {color};}}
+                """
+    elif flag == 2:
+        return f"""QCheckBox {{font-size:12pt;color:blue}}
+                       QCheckBox::indicator {{Background-color: {color};}}
+                """
+    return f"""QCheckBox {{font-size:12pt;color:red}}
+                   QCheckBox::indicator {{Background-color: {color};}}
+            """
+
+
+# def curve_only_check(color: str) -> str:
+#     return f"""QCheckBox {{font-size:12pt;color:blue}}
+#                    QCheckBox::indicator {{Background-color: {color};}}
+#             """
+#
+#
+# def curve_invisible_check(color: str) -> str:
+#     return f"""QCheckBox {{font-size:12pt;color:red}}
+#                    QCheckBox::indicator {{Background-color: {color};}}
+#             """
+
+
+def rgb_to_hex(rgb: Sequence) -> str:
+    """(r, g, b) -> #rrggbb変換
+
+    Parameters
+    ----------
+    rgb: tuple
+        rgbのタプル
+
+    Returns
+    -------
+    hex: str
+        カラーコード
+    """
+
+    r, g, b = f"{rgb[0]:02x}", f"{rgb[1]:02x}", f"{rgb[2]:02x}"
+    return '#' + r + g + b
 
 
 def curve_colors(num: int, start: str = '#f00', end: str = '#00f') -> np.ndarray:
@@ -24,7 +69,9 @@ def curve_colors(num: int, start: str = '#f00', end: str = '#00f') -> np.ndarray
 
     start_c: Color = Color(start)
     end_c: Color = Color(end)
-    return np.array([color.get_rgb() for color in start_c.range_to(end_c, num)]) * 255
+    colors: np.ndarray = np.array([color.get_rgb() for color in start_c.range_to(end_c, num)]) * 255
+
+    return colors.astype(np.uint8)
 
 
 def tag(name: str, fontsize: int):
