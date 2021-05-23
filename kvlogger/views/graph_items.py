@@ -3,11 +3,12 @@ import datetime as dt
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
-from PySide6.QtGui import QColor, QFont
+from PySide6.QtGui import QColor
 from PySide6.QtCore import Slot, Signal, QPointF
 from PySide6.QtWidgets import QGraphicsWidget, QGraphicsGridLayout
 import pyqtgraph as pg
 
+from kvlogger.views import CurveStatus
 from kvlogger.views import style
 
 
@@ -23,7 +24,7 @@ class SortableCurve(pg.PlotDataItem):
 
     Attributes
     ----------
-    num: int
+    idx: int
         整列番号
     """
 
@@ -31,17 +32,17 @@ class SortableCurve(pg.PlotDataItem):
     emit_num: int = 0
     nearest: List[float] = [1.0, 1.0]
 
-    def __init__(self, number: int, *args, **kwargs) -> None:
+    def __init__(self, idx: int, *args, **kwargs) -> None:
         """初期化処理
 
 
         Parameters
         ----------
-        number: int
+        idx: int
             整列番号
         """
 
-        self.number: int = number
+        self.idx: int = idx
         super(SortableCurve, self).__init__(*args, **kwargs)
 
     @Slot(int, QPointF)
@@ -133,12 +134,13 @@ class RegionCurve(SortableCurve):
 
         if self not in widget.items:
             widget.addItem(self, ignoreBounds=False)
+        if self.region not in widget.items:
             widget.addItem(self.region, ignoreBounds=True)
 
     def reset_region(self) -> None:
         """regionをリセットする"""
 
-        self.min_, self.max_ = 0, 0
+        self.min_, self.max_ = min(self.yData), max(self.yData)
         self.region.setRegion((self.min_, self.max_))
 
     def removed(self, widget: pg.PlotItem) -> None:
@@ -163,31 +165,40 @@ class RegionCurve(SortableCurve):
             測定値
         """
 
-        min_, max_ = np.min(values), np.max(values)
-        self.min_ = min(self.min_, min_)
-        self.max_ = max(self.max_, max_)
+        self.min_, self.max_ = np.min(values), np.max(values)
 
         self.setData(values)
         self.region.setRegion((self.min_, self.max_))
 
-    def switch_region_visible(self, widget: pg.PlotItem, visible: bool) -> None:
+    def removed_region(self, widget: pg.PlotItem) -> None:
         """regionの表示 / 非表示切り替え
 
         Parameters
         ----------
         widget: pg.PlotItem
             regionを削除するプロットアイテム
-        visible: bool
-            表示 / 非表示判定
         """
 
-        added: bool = self.region in widget.items
-        if visible and not added:
-            widget.addItem(self.region)
-        elif not visible and added:
+        if self.region in widget.items:
             widget.removeItem(self.region)
-        else:
-            raise ValueError('regionは既に表示されているか、非表示です')
+        if self not in widget.items:
+            widget.addItem(self)
+
+    def update_data(self, values: np.ndarray) -> None:
+        """測定値を更新する
+
+        Parameters
+        ----------
+        values: np.ndarray
+            測定値
+        """
+
+        min_, max_ = min(values), max(values)
+        self.min_ = min(self.min_, min_)
+        self.max_ = max(self.max_, max_)
+
+        self.setData(values)
+        self.region.setRegion((self.min_, self.max_))
 
 
 class CursorLabel(QGraphicsWidget):
@@ -406,15 +417,13 @@ class MainPlot(pg.GraphicsLayoutWidget):
 
     mouseMoved = Signal(int, QPointF)
 
-    def __init__(self, ylabel: str, items: List[str], *args, **kwargs) -> None:
+    def __init__(self, ylabel: str, *args, **kwargs) -> None:
         """初期化処理
 
         Parameters
         ----------
         ylabel: str
             y軸ラベル
-        items: List[str]
-            追加するcurve名
         """
 
         self.emit_no = 0
@@ -440,24 +449,24 @@ class MainPlot(pg.GraphicsLayoutWidget):
                                     rateLimit=60,
                                     slot=self.get_mouse_position)
 
-        self.add_curve(items)
-
-    def add_curve(self, items: List[str]) -> None:
+    def add_curve(self, idx: int, color: tuple, name: str) -> None:
         """プロットするcurveを追加する
 
         Parameters
         ----------
-        items: List[str]
-            追加するcurve名
+        idx: int
+            カーブ番号
+        color: tuple
+            (r, g, b)
+        name: str
+            curveの名前
         """
 
-        colors: np.ndarray = style.curve_colors(len(items))
-        for num, (item, color) in enumerate(zip(items, colors)):
-            curve: RegionCurve = RegionCurve(num, name=item, pen=color)
-            curve.sigSentInfo.connect(self.labels.set_curve_label)
-            self.mouseMoved.connect(curve.send_info)
-            curve.added(self.plot)
-            self.curves[num] = curve
+        curve: RegionCurve = RegionCurve(idx, name=name, pen=color)
+        curve.sigSentInfo.connect(self.labels.set_curve_label)
+        self.mouseMoved.connect(curve.send_info)
+        curve.added(self.plot)
+        self.curves[idx] = curve
 
     def get_mouse_position(self, event: Tuple[QPointF]) -> None:
         """
@@ -482,24 +491,27 @@ class MainPlot(pg.GraphicsLayoutWidget):
         coord = self.plot.vb.mapSceneToView(pos)
         self.mouseMoved.emit(self.emit_no, coord)
 
-    @Slot(int, bool)
-    def switch_curve_visible(self, number: int, visible: bool) -> None:
+    @Slot(int, CurveStatus)
+    def switch_curve_visible(self, idx: int, status: CurveStatus) -> None:
         """curveとregionの表示を切り替える
 
         Parameters
         ----------
-        number: int
+        idx: int
             curve番号
-        visible: bool
+        status: CurveStatus
             表示 / 非表示判定
         """
 
-        if number not in self.curves:
+        if idx not in self.curves:
             raise ValueError('番号が存在していません')
-        if visible:
-            self.curves[number].added(self.plot)
-        else:
-            self.curves[number].removed(self.plot)
+
+        if status == CurveStatus.VISIBLE:
+            self.curves[idx].added(self.plot)
+        elif status == CurveStatus.CURVE_ONLY:
+            self.curves[idx].removed_region(self.plot)
+        elif status == CurveStatus.INVISIBLE:
+            self.curves[idx].removed(self.plot)
 
 
 if __name__ == '__main__':

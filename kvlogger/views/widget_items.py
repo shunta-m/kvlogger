@@ -2,27 +2,18 @@
 import enum
 from typing import List, Optional
 
+import numpy as np
 import pandas as pd
 from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             Signal, Slot)
 from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QFrame,
-                               QListWidget, QListWidgetItem, QTableView,
-                               QWidget)
+                               QHBoxLayout, QLabel, QListWidget,
+                               QProgressBar, QListWidgetItem, QSplitter,
+                               QTableView, QVBoxLayout, QWidget)
 
+from kvlogger.views import CurveStatus
+from kvlogger.views import graph_items as gi
 from kvlogger.views import style
-
-
-class CurveStatus(enum.Flag):
-    """curve表示状態の列挙型
-
-    VISIBLE: curve, region共に表示
-    CURVE_ONLY: curveのみ表示
-    INVISIBLE: curve, region共に非表示
-    """
-
-    VISIBLE = enum.auto()
-    CURVE_ONLY = enum.auto()
-    INVISIBLE = enum.auto()
 
 
 class DataFrameModel(QAbstractTableModel):
@@ -283,11 +274,82 @@ class LegendListWidget(QListWidget):
 class SectionMeasureWidget(QWidget):
     """セクションごとの測定画面"""
 
-    def __init__(self, *args, **kwargs) -> None:
-        """初期化処理"""
+    def __init__(self, section: str, items: List[str], *args, **kwargs) -> None:
+        """初期化処理
+
+        Parameters
+        ----------
+        section: str
+            セクション名
+        items: List[str]
+            セクション内のアイテム
+        """
 
         super(SectionMeasureWidget, self).__init__(*args, **kwargs)
-        
+
+        self.setup_ui(section, items)
+        self.connect_slot()
+
+    def setup_ui(self, ylabel: str, items: List[str]) -> None:
+        """ui作成
+
+        Parameters
+        ----------
+        ylabel: str
+            グラフyラベル
+        items: List[str]
+            セクション内のアイテム
+        """
+
+        splitter: QSplitter = QSplitter()
+        left_widget: QWidget = QWidget()
+        right_widget: QWidget = QWidget()
+
+        main_layout = QHBoxLayout()
+        left_layout = QVBoxLayout()
+        right_layout = QVBoxLayout()
+
+        main_layout.addWidget(splitter)
+        self.setLayout(main_layout)
+
+        self.describe_view: DataFrameView = DataFrameView()
+        self.progress: QProgressBar = QProgressBar()
+        self.graph: gi.MainPlot = gi.MainPlot(ylabel)
+        self.legend_list: LegendListWidget = LegendListWidget()
+
+        left_layout.addWidget(QLabel('Describe'))
+        left_layout.addWidget(self.describe_view)
+        left_layout.addWidget(self.progress)
+        left_widget.setLayout(left_layout)
+
+        right_layout.addWidget(QLabel('Legend'))
+        right_layout.addWidget(self.legend_list)
+        right_widget.setLayout(right_layout)
+
+        splitter.addWidget(left_widget)
+        splitter.addWidget(self.graph)
+        splitter.addWidget(right_widget)
+
+        splitter.setSizes([splitter.size().width() * 0.25,
+                           splitter.size().width() * 0.65,
+                           splitter.size().width() * 0.10])
+
+        colors: np.ndarray = style.curve_colors(len(items))
+        for idx, (item, color) in enumerate(zip(items, colors)):
+            self.graph.add_curve(idx, color, item)
+            self.legend_list.add_checkbox(idx, style.rgb_to_hex(color), item)
+
+        for curve in self.graph.curves.values():
+            r1 = int(np.random.rand() * 10)
+            r2 = r1 + 10
+            curve.set_data(np.random.randint(r1, r2, 100))
+
+    def connect_slot(self) -> None:
+        """slot接続"""
+
+        self.legend_list.checkStatusChanged.connect(self.graph.switch_curve_visible)
+        self.legend_list.checkStatusChanged.connect(self.graph.switch_curve_visible)
+
 
 class StaticHLine(QFrame):
     """横線"""
@@ -306,15 +368,12 @@ if __name__ == '__main__':
 
     from PySide6.QtWidgets import QApplication
 
-    app = QApplication(sys.argv)
-    win = LegendListWidget()
-
     length = 5
-    colors = style.curve_colors(length)
-    colors_hex = list(map(style.rgb_to_hex, colors))
+    sec = 'test'
+    items_ = [f"test{i}" for i in range(length)]
 
-    for i in range(length):
-        win.add_checkbox(i, colors_hex[i], f"test{i}")
+    app = QApplication(sys.argv)
+    win = SectionMeasureWidget(sec, items_)
     win.show()
 
     sys.exit(app.exec())
