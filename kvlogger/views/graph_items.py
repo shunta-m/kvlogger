@@ -101,6 +101,80 @@ class SortableCurve(pg.PlotDataItem):
         return result
 
 
+class RegionCurve(SortableCurve):
+    """Region付curve"""
+
+    def __init__(self, *args, **kwargs) -> None:
+        """初期化処理"""
+
+        self.min_: float = 0
+        self.max_: float = 0
+        super(RegionCurve, self).__init__(*args, **kwargs)
+
+        color: QColor = QColor(*self.opts['pen'], a=32)
+        self.region = pg.LinearRegionItem(orientation='horizontal',
+                                          brush=pg.mkBrush(color),
+                                          pen=pg.mkPen(color, width=0.5),
+                                          movable=False)
+        self.region.setRegion((0, 0))
+        self.region.setZValue(10)
+
+    def added_item(self, widget: pg.PlotItem) -> None:
+        """自身とregionをwidgetに追加する
+
+        Parameters
+        ----------
+        widget: pg.PlotItem
+            追加するプロットアイテム
+        """
+
+        widget.addItem(self, ignoreBounds=False)
+        widget.addItem(self.region, ignoreBounds=True)
+
+    def reset_region(self) -> None:
+        """regionをリセットする"""
+
+        self.min_, self.max_ = 0, 0
+        self.region.setRegion((self.min_, self.max_))
+
+    def set_data(self, values: np.ndarray) -> None:
+        """測定値をグラフ表示する. regionの範囲を最大、最小値に合わせる
+
+        Parameters
+        ----------
+        values: np.ndarray
+            測定値
+        """
+
+        min_, max_ = np.min(values), np.max(values)
+        if self.min_ > min_:
+            self.min_ = min_
+        if self.max_ < max_:
+            self.max_ = max_
+
+        self.setData(values)
+        self.region.setRegion((self.min_, self.max_))
+
+    def switch_region_visible(self, widget: pg.PlotItem, visible: bool) -> None:
+        """regionの表示 / 非表示切り替え
+
+        Parameters
+        ----------
+        widget: pg.PlotItem
+            regionを削除するプロットアイテム
+        visible: bool
+            表示 / 非表示判定
+        """
+
+        added: bool = self.region in widget.items
+        if visible and not added:
+            widget.addItem(self.region)
+        elif not visible and added:
+            widget.removeItem(self.region)
+        else:
+            raise ValueError('regionは既に表示されているか、非表示です')
+
+
 class CursorLabel(QGraphicsWidget):
     """マウスカーソル位置表示用ラベル
 
@@ -293,6 +367,9 @@ if __name__ == '__main__':
 
     TimeAxisItem.calc_interval(60, 's')
 
-    plot.plot.plot(data)
+    rc = RegionCurve(0)
+    rc.added_item(plot.plot)
+    rc.set_data(data)
+    rc.switch_region_visible(plot.plot, False)
     plot.show()
     sys.exit(app.exec())
