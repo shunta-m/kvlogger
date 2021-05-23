@@ -47,6 +47,7 @@ class InitConfig:
     @property
     def sections(self) -> List[str]:
         """全てのセクションを返す"""
+
         return self.config.sections()
 
     @property
@@ -114,7 +115,6 @@ class InitConfig:
         """
 
         section: str = self.measure_sections[section_idx]
-
         return self.config[section]['unit']
 
 
