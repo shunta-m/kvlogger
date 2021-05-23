@@ -2,3 +2,4 @@
 tutorial/
 kvlogger/__pycache__/
 kvlogger/views/__pycache__/
+kvlogger/models/config.ini
