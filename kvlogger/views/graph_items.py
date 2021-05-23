@@ -3,10 +3,12 @@ import datetime as dt
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QFont
 from PySide6.QtCore import Slot, Signal, QPointF
 from PySide6.QtWidgets import QGraphicsWidget, QGraphicsGridLayout
 import pyqtgraph as pg
+
+from kvlogger.views import style
 
 
 class SortableCurve(pg.PlotDataItem):
@@ -214,9 +216,9 @@ class CursorLabel(QGraphicsWidget):
         self.x_label = pg.LabelItem(justify='left')
         self.y_label = pg.LabelItem(justify='left')
 
-        prefix_curve = pg.LabelItem('Curve: ', justify='left')
-        prefix_x = pg.LabelItem('Time: ', justify='left')
-        prefix_y = pg.LabelItem(f"{y_label}:", justify='left')
+        prefix_curve = pg.LabelItem(style.curve_cursor('Curve: '), justify='left')
+        prefix_x = pg.LabelItem(style.curve_cursor('Time: '), justify='left')
+        prefix_y = pg.LabelItem(style.curve_cursor(f"{y_label}:"), justify='left')
 
         layout = QGraphicsGridLayout()
         layout.setContentsMargins(1, 1, 1, 1)
@@ -246,8 +248,8 @@ class CursorLabel(QGraphicsWidget):
             マウス座標
         """
 
-        self.x_label.setText(TimeAxisItem.calc_time(coord.x()))
-        self.y_label.setText(f"{coord.y():.3e}")
+        self.x_label.setText(style.curve_cursor(TimeAxisItem.calc_time(coord.x())))
+        self.y_label.setText(style.curve_cursor(f"{coord.y():.3e}"))
 
     @Slot(tuple)
     def set_curve_label(self, info: Tuple[str, tuple]) -> None:
@@ -259,7 +261,7 @@ class CursorLabel(QGraphicsWidget):
             curve名と色
         """
 
-        self.curve_label.setText(info[0], color=info[1])
+        self.curve_label.setText(style.curve_cursor(info[0]), color=info[1])
         # self.update()
 
 
@@ -292,14 +294,15 @@ class TimeAxisItem(pg.AxisItem):
 
         super().__init__(**kwargs)
         if self.format_ == 'date':
-            self.setLabel(text='Time', units=None)
+            self.setLabel(text='Time', units=None, **style.axis_label())
         elif self.format_ == 'elapsed':
-            self.setLabel(text='Elapsed time', units='s')
+            self.setLabel(text='Elapsed time', units='s', **style.axis_label())
         else:
             raise ValueError('format_は"date"か"elapsed"です')
 
-        self.enableAutoSIPrefix(False)
+        self.setTickFont(style.tick_font())
 
+        self.enableAutoSIPrefix(False)
         self.converter: Callable = self.select_converter()
         self.setGrid(alpha * 255)
 

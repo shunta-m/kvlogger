@@ -1,2 +1,4 @@
 .idea/
 tutorial/
+kvlogger/__pycache__/
+kvlogger/views/__pycache__/
