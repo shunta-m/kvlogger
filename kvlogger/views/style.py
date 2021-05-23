@@ -1,5 +1,30 @@
 """UIのスタイルを記載"""
+from colour import Color
+import numpy as np
 from PySide6.QtGui import QFont
+
+
+def curve_colors(num: int, start: str = '#f00', end: str = '#00f') -> np.ndarray:
+    """curveの色を作成
+
+    Parameters
+    ----------
+    num: int
+        色を作成する数
+    start: str default='#f00'
+        最初の色
+    end: str default='#00f'
+        最後の色
+
+    Returns
+    ----------
+    colors: np.ndarray
+        色. [(r, g, b), (r, g, b), ...]
+    """
+
+    start_c: Color = Color(start)
+    end_c: Color = Color(end)
+    return np.array([color.get_rgb() for color in start_c.range_to(end_c, num)]) * 255
 
 
 def tag(name: str, fontsize: int):

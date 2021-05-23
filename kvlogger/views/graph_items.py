@@ -34,6 +34,7 @@ class SortableCurve(pg.PlotDataItem):
     def __init__(self, number: int, *args, **kwargs) -> None:
         """初期化処理
 
+
         Parameters
         ----------
         number: int
@@ -450,8 +451,9 @@ class MainPlot(pg.GraphicsLayoutWidget):
             追加するcurve名
         """
 
-        for num, item in enumerate(items):
-            curve: RegionCurve = RegionCurve(num, name=item)
+        colors: np.ndarray = style.curve_colors(len(items))
+        for num, (item, color) in enumerate(zip(items, colors)):
+            curve: RegionCurve = RegionCurve(num, name=item, pen=color)
             curve.sigSentInfo.connect(self.labels.set_curve_label)
             self.mouseMoved.connect(curve.send_info)
             curve.added(self.plot)
