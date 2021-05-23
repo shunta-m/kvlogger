@@ -64,13 +64,13 @@ class InitConfig:
         items = [self.config.items(section) for section in self.measure_sections]
         return [col[1] for col in sum(items, []) if col[0] == 'unit']
 
-    def get_measure_section_items_name(self, section_idx: int) -> List[str]:
+    def get_measure_section_items_name(self, section: str) -> List[str]:
         """指定したセクション内のアイテム名を返す
 
         Parameters
         ----------
-        section_idx: int
-            セクションインデックス
+        section: str
+            セクション
 
         Returns
         ----------
@@ -78,17 +78,16 @@ class InitConfig:
             名前
         """
 
-        section: str = self.measure_sections[section_idx]
         items: List[Tuple[str, str]] = self.config.items(section)
         return [col[0] for col in items if col[0] != 'unit']
 
-    def get_measure_section_items_dm(self, section_idx: int) -> List[str]:
+    def get_measure_section_items_dm(self, section: str) -> List[str]:
         """指定したセクション内のDMを返す
 
         Parameters
         ----------
-        section_idx: int
-            セクションインデックス
+        section: str
+            セクション
 
         Returns
         ----------
@@ -96,17 +95,16 @@ class InitConfig:
             DM
         """
 
-        section: str = self.measure_sections[section_idx]
         items: List[Tuple[str, str]] = self.config.items(section)
         return [col[1] for col in items if col[0] != 'unit']
 
-    def get_measure_section_item_unit(self, section_idx: int) -> str:
+    def get_measure_section_unit(self, section: str) -> str:
         """指定したセクション内のunitを返す
 
         Parameters
         ----------
-        section_idx: int
-            セクションインデックス
+        section: str
+            セクション
 
         Returns
         ----------
@@ -114,8 +112,11 @@ class InitConfig:
             単位
         """
 
-        section: str = self.measure_sections[section_idx]
         return self.config[section]['unit']
 
 
 config = InitConfig()
+sections = config.measure_sections
+print(config.get_measure_section_items_dm(sections[0]))
+print(config.get_measure_section_items_name(sections[0]))
+print(config.get_measure_section_unit(sections[0]))
