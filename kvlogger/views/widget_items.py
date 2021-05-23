@@ -6,7 +6,8 @@ import pandas as pd
 from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             Signal, Slot)
 from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QFrame,
-                               QListWidget, QListWidgetItem, QTableView, )
+                               QListWidget, QListWidgetItem, QTableView,
+                               QWidget)
 
 from kvlogger.views import style
 
@@ -79,7 +80,6 @@ class DataFrameModel(QAbstractTableModel):
         if role == 0:
             return str(self.data_frame.iloc[index.row(), index.column()])
 
-    # @Signal(int, Qt.Orientation)
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> str:
         """sectionで指定したカラムインデックスの値を返す
 
@@ -183,12 +183,11 @@ class LegendCheckBox(QCheckBox):
 
         super(LegendCheckBox, self).__init__(*args, **kwargs)
         self.setStyleSheet(style.curve_check(color, self.status.value))
-        self.stateChanged.connect(self.changed_state)
+        self.stateChanged.connect(self.changed_check_color)
 
     @Slot()
-    def changed_state(self) -> None:
-        """チェックボックスの状態を判断して
-        legendStateChangedシグナルを発火させる"""
+    def changed_check_color(self) -> None:
+        """チェックボックスの状態を判断して色を変える"""
 
         if self.status == CurveStatus.VISIBLE:
             self.status = CurveStatus.CURVE_ONLY
@@ -196,6 +195,12 @@ class LegendCheckBox(QCheckBox):
             self.status = CurveStatus.INVISIBLE
         else:
             self.status = CurveStatus.VISIBLE
+
+        self.emit_status_changed()
+
+    def emit_status_changed(self) -> None:
+        """statusChanged送信用"""
+
         self.setStyleSheet(style.curve_check(self.color, self.status.value))
         self.statusChanged.emit(self.idx, self.status)
 
@@ -270,11 +275,19 @@ class LegendListWidget(QListWidget):
         if idx == -1:
             for check in self.check_list[1:]:
                 check.status = status
-                check.statusChanged.emit(check.idx, check.status)
-                check.setStyleSheet(style.curve_check(check.color, check.status.value))
+                check.emit_status_changed()
         else:
             self.checkStatusChanged.emit(idx, status)
 
+
+class SectionMeasureWidget(QWidget):
+    """セクションごとの測定画面"""
+
+    def __init__(self, *args, **kwargs) -> None:
+        """初期化処理"""
+
+        super(SectionMeasureWidget, self).__init__(*args, **kwargs)
+        
 
 class StaticHLine(QFrame):
     """横線"""
@@ -296,7 +309,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     win = LegendListWidget()
 
-    length = 100
+    length = 5
     colors = style.curve_colors(length)
     colors_hex = list(map(style.rgb_to_hex, colors))
 
