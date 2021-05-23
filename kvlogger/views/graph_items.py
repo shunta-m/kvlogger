@@ -431,7 +431,11 @@ class MainPlot(pg.GraphicsLayoutWidget):
         super(MainPlot, self).__init__(*args, **kwargs)
 
         self.labels: CursorLabel = CursorLabel(ylabel)
-        self.plot: pg.PlotItem = pg.PlotItem(labels={'left': ylabel})
+        self.plot: pg.PlotItem = pg.PlotItem()
+        yaxis: pg.AxisItem = self.plot.getAxis('left')
+        yaxis.setTickFont(style.tick_font())
+        yaxis.setLabel(text=ylabel, **style.axis_label())
+
         self.plot.showGrid(y=True, alpha=0.8)
 
         self.addItem(self.labels, 0, 0)

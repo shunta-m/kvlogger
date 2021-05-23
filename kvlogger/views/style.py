@@ -49,7 +49,7 @@ def rgb_to_hex(rgb: Sequence) -> str:
     return '#' + r + g + b
 
 
-def curve_colors(num: int, start: str = '#f00', end: str = '#00f') -> np.ndarray:
+def curve_colors(num: int, start: str = '#c40', end: str = '#04c') -> np.ndarray:
     """curveの色を作成
 
     Parameters
