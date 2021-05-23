@@ -101,8 +101,8 @@ class SortableCurve(pg.PlotDataItem):
         return result
 
 
-class PlotLabel(QGraphicsWidget):
-    """プロットタイトル
+class CursorLabel(QGraphicsWidget):
+    """マウスカーソル位置表示用ラベル
 
     Attributes
     ----------
@@ -123,14 +123,14 @@ class PlotLabel(QGraphicsWidget):
             y座標ラベル
         """
 
-        super(PlotLabel, self).__init__(*args, **kwargs)
+        super(CursorLabel, self).__init__(*args, **kwargs)
         self.curve_label = pg.LabelItem()
         self.x_label = pg.LabelItem()
         self.y_label = pg.LabelItem()
 
         prefix_curve = pg.LabelItem('Curve: ', justify='left')
         prefix_x = pg.LabelItem('Time: ', justify='left')
-        prefix_y = pg.LabelItem(f"{y_label}", justify='left')
+        prefix_y = pg.LabelItem(f"{y_label}:", justify='left')
 
         layout = QGraphicsGridLayout()
         layout.setContentsMargins(1, 1, 1, 1)
@@ -176,13 +176,15 @@ class TimeAxisItem(pg.AxisItem):
         self.format_: str = format_
         self.start_time = dt.datetime.now()
 
-        super().__init__(orientation='bottom', **kwargs)
+        super().__init__(**kwargs)
         if self.format_ == 'date':
             self.setLabel(text='Time', units=None)
         elif self.format_ == 'elapsed':
             self.setLabel(text='Elapsed time', units='s')
         else:
             raise ValueError('format_は"date"か"elapsed"です')
+
+        self.enableAutoSIPrefix(False)
 
         self.converter: Callable = self.select_converter()
         self.setGrid(alpha * 255)
@@ -205,11 +207,13 @@ class TimeAxisItem(pg.AxisItem):
 
             return list(map(convert, values))
 
-        def convert_elapsed(values: list) -> np.ndarray:
+        def convert_elapsed(values: list) -> list:
             """経過時間列変換関数
             表示中の0点から最大値までの経過時間を作成する
             """
-            return np.array(values) * self.interval
+
+            ar: np.ndarray = np.array(values) * self.interval
+            return ar.tolist()
 
         if self.format_ == 'date':
             return convert_date
@@ -242,44 +246,53 @@ class TimeAxisItem(pg.AxisItem):
             raise ValueError('intervalは"s", "min", "h"のどれかです')
 
 
-class SamplePlot(pg.PlotItem):
-    def __init__(self, *args, **kwargs) -> None:
-        super(SamplePlot, self).__init__(*args, **kwargs)
+class MainPlot(pg.GraphicsLayoutWidget):
+    """x軸が複数あるプロット
+
+    Attributes
+    ----------
+    labels: CursorLabel
+        マウスカーソル位置表示用ラベル
+    plot: pg.PlotItem
+        プロット
+    """
+
+    def __init__(self, ylabel: str, *args, **kwargs) -> None:
+        """初期化処理
+
+        Parameters
+        ----------
+        ylabel: str
+            y軸ラベル
+        """
+
+        super(MainPlot, self).__init__(*args, **kwargs)
+
+        self.labels = CursorLabel(ylabel)
+        self.plot = pg.PlotItem(labels={'left': ylabel})
+        self.plot.showGrid(y=True, alpha=0.8)
+
+        self.addItem(self.labels, 0, 0)
+        self.addItem(self.plot, 1, 0)
+
+        self.plot.setAxisItems({'bottom': TimeAxisItem('date', orientation='bottom')})
+        sub_xaxis: TimeAxisItem = TimeAxisItem('elapsed', alpha=0, orientation='bottom', linkView=self.plot.vb)
+        sub_xaxis.setZValue(-1000)
+        self.plot.layout.addItem(sub_xaxis, 4, 1)
+        self.plot.layout.setVerticalSpacing(10)
 
 
 if __name__ == '__main__':
     import sys
 
-    data = np.linspace(0, 100, 30)
+    data = np.linspace(0, 100, 1001)
 
     app = QApplication(sys.argv)
 
-    plot = SamplePlot(title='test')
-    MainPlot = pg.PlotWidget(plotItem=plot)
-    # win.addItem(plot)
+    plot = MainPlot('test')
 
     TimeAxisItem.calc_interval(60, 's')
-    plot.setAxisItems({'bottom': TimeAxisItem('date')})
-    AuxPlot = TimeAxisItem('elapsed', alpha=0, linkView=plot.vb)
-    # MainPlot.showAxis('top')
-    # MainPlot.scene().addItem(AuxPlot)
-    # AuxPlot.setGeometry(MainPlot.getPlotItem().vb.sceneBoundingRect())
-    # MainPlot.getAxis('top').linkToView(AuxPlot)
-    # plot.scene().addItem(AuxPlot)
-    # plot.showAxis('bottom')
-    # AuxPlot.setGeometry(plot.vb.sceneBoundingRect())
-    # AuxPlot.linkToView(plot.vb)
-    # plot.axes['bottom'] = {"item": AuxPlot, "pos": [3, 1]}
-    print(plot.layout)
-    plot.layout.addItem(AuxPlot, 4, 1)
-    plot.layout.setContentsMargins(1, 1, 1, 1)
-    plot.layout.setVerticalSpacing(10)
 
-    # plot.layout.setRowStretchFactor(1, 3)
-    # plot.layout.setRowStretchFactor(2, 10)
-    # plot.layout.setRowStretchFactor(3, 3)
-    # plot.layout.setRowStretchFactor(4, 4)
-
-    plot.plot(data)
-    MainPlot.show()
+    plot.plot.plot(data)
+    plot.show()
     sys.exit(app.exec())
