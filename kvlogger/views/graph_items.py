@@ -1,6 +1,6 @@
 """UIで使用するグラフアイテム"""
 import datetime as dt
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple
 
 import numpy as np
 from PySide6.QtGui import QColor
@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QApplication, QGraphicsWidget, QGraphicsGridLayout
 import pyqtgraph as pg
 
 
-class SortableCurve(pg.PlotCurveItem):
+class SortableCurve(pg.PlotDataItem):
     """並べ替え可能なpg.PlotCurveItem
 
     sigSentInfo: Signal
