@@ -1,4 +1,5 @@
 """UIで使用するウィジットアイテム"""
+from collections import defaultdict
 from typing import List, Optional
 
 import numpy as np
@@ -37,18 +38,18 @@ class CurrentValue:
 class CurrentValueModel(QAbstractTableModel):
     """現在値を表示するテーブルのモデル"""
 
-    def __init__(self, cols: List[str], *args, **kwargs):
+    def __init__(self, columns: List[str], *args, **kwargs):
         """初期化処理
 
         Parameters
         ----------
-        cols: List[str]
+        columns: List[str]
             カラム名のリスト
         """
 
         super(CurrentValueModel, self).__init__(*args, **kwargs)
 
-        self._data = [CurrentValue(col) for col in cols]
+        self._data = [CurrentValue(col) for col in columns]
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
         """列数を返す
@@ -233,29 +234,17 @@ class StretchTableView(QTableView):
         self.setAlternatingRowColors(True)
         self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
-    def set_orientation_size(self, orientation: str) -> None:
-        """rows or columnsの幅を設定する
+    def set_stretch(self) -> None:
+        """rows or columnsの幅View全体にする"""
 
-        Parameters
-        ----------
-        orientation: str
-            vertical or horizontal
-        """
+        v_header: QHeaderView = self.verticalHeader()
+        h_header: QHeaderView = self.horizontalHeader()
 
-        if orientation.upper() == 'VERTICAL':
-            size: int = self.size().height()
-            header: QHeaderView = self.verticalHeader()
-            item_count: int = self.model().rowCount()
+        for vh in range(v_header.count()):
+            v_header.setSectionResizeMode(QHeaderView.Stretch)
 
-        elif orientation.upper() == 'HORIZONTAL':
-            size: int = self.size().width()
-            header: QHeaderView = self.horizontalHeader()
-            item_count: int = self.model().rowCount()
-        else:
-            raise ValueError('orientation is vertical or horizontal.')
-
-        for v in range(header.count()):
-            header.setDefaultSectionSize(size / item_count)
+        for hh in range(h_header.count()):
+            h_header.setSectionResizeMode(QHeaderView.Stretch)
 
 
 class LegendCheckBox(QCheckBox):
@@ -457,8 +446,7 @@ class SectionMeasureWidget(QWidget):
         df: pd.DataFrame = pd.DataFrame(index=range(1), columns=items).fillna(0)
         model: DataFrameModel = DataFrameModel(df.describe())
         self.describe_view.setModel(model)
-        self.describe_view.set_orientation_size('horizontal')
-        self.describe_view.set_orientation_size('vertical')
+        self.describe_view.set_stretch()
 
         # TODO sample plot 後で消す
         for curve in self.graph.curves.values():
@@ -489,12 +477,55 @@ if __name__ == '__main__':
 
     from PySide6.QtWidgets import QApplication
 
-    length = 5
-    sec = 'test'
+    length = 10
     items_ = [f"test{i}" for i in range(length)]
 
-    app = QApplication(sys.argv)
-    win = SectionMeasureWidget(sec, items_)
-    win.show()
 
-    sys.exit(app.exec())
+    def section_window() -> None:
+        """セクション別画面表示用関数"""
+
+        app = QApplication(sys.argv)
+        win = SectionMeasureWidget('test', items_)
+        win.show()
+
+        sys.exit(app.exec())
+
+
+    def current_table():
+        """現在値表示用テーブル用変数"""
+
+        app = QApplication(sys.argv)
+        win = StretchTableView()
+        model = CurrentValueModel(items_)
+        win.setModel(model)
+        win.set_stretch('horizontal')
+        win.set_stretch('vertical')
+        win.show()
+
+        sys.exit(app.exec())
+
+
+    def test():
+        app = QApplication(sys.argv)
+
+        ta = StretchTableView()
+        model = CurrentValueModel(items_)
+        ta.setModel(model)
+        ta.set_stretch()
+        # ta.set_orientation_size('vertical')
+
+        sec = SectionMeasureWidget('test', items_)
+
+        win = QWidget()
+        lay = QVBoxLayout()
+        lay.addWidget(ta, 10)
+        lay.addWidget(sec, 90)
+        win.setLayout(lay)
+
+        win.show()
+        sys.exit(app.exec())
+
+
+    # section_window()
+    # current_table()
+    test()
