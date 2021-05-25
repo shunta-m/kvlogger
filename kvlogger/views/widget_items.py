@@ -1,5 +1,4 @@
 """UIで使用するウィジットアイテム"""
-import enum
 from typing import List, Optional
 
 import numpy as np
@@ -7,13 +6,116 @@ import pandas as pd
 from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             Signal, Slot)
 from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QFrame,
-                               QHBoxLayout, QLabel, QListWidget,
-                               QProgressBar, QListWidgetItem, QSplitter,
-                               QTableView, QVBoxLayout, QWidget)
+                               QHBoxLayout, QHeaderView, QLabel,
+                               QListWidget, QProgressBar, QListWidgetItem,
+                               QSplitter, QTableView, QVBoxLayout,
+                               QWidget)
 
 from kvlogger.views import CurveStatus
 from kvlogger.views import graph_items as gi
 from kvlogger.views import style
+
+
+class CurrentValue:
+    """現在地を保持する"""
+
+    def __init__(self, col: str, value: float = 0.0) -> None:
+        """初期化処理
+
+        Parameters
+        ----------
+        col: str
+            カラム名
+        value: float default=0.0
+            値
+        """
+
+        self.col = col
+        self.value = value
+
+
+class CurrentValueModel(QAbstractTableModel):
+    """現在値を表示するテーブルのモデル"""
+
+    def __init__(self, cols: List[str], *args, **kwargs):
+        """初期化処理
+
+        Parameters
+        ----------
+        cols: List[str]
+            カラム名のリスト
+        """
+
+        super(CurrentValueModel, self).__init__(*args, **kwargs)
+
+        self._data = [CurrentValue(col) for col in cols]
+
+    def columnCount(self, parent: QModelIndex = ...) -> int:
+        """列数を返す
+
+        Returns
+        ----------
+        columnCount: int
+            列数
+        """
+
+        return len(self._data)
+
+    def data(self, index: QModelIndex, role: int = 0) -> Optional[str]:
+        """ビューが指定している座標のデータを返す
+
+        Parameters
+        ----------
+        index: QModelIndex
+            ビューが要求しているデータの座標
+        role: int default=0
+            要求しているデータ形式. 0でDisplayRole(文字列).
+            表示中のデータを文字列で要求している.
+
+        Returns
+        ----------
+        data: str
+            ビューに要求されたデータ
+        """
+
+        if not index.isValid():
+            return
+
+        if role == 0:
+            return str(self._data[index.row()].value)
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> str:
+        """sectionで指定したカラムインデックスの値を返す
+
+        Parameters
+        ----------
+        section: int
+            カラムインデックス
+        orientation: Qt.Orientation
+            ヘッダーの向き
+        role: int default=0
+            要求しているデータ形式. 0でDisplayRole(文字列).
+            表示中のデータを文字列で要求している.
+
+        Returns
+        -------
+        headerData: str
+            ヘッダー
+        """
+
+        if orientation == Qt.Orientation.Horizontal and role == 0:
+            return str(self._data[section].col)
+
+    def rowCount(self, parent: QModelIndex = ...) -> int:
+        """行数を返す
+
+        Returns
+        ----------
+        rowCount: int
+            行数
+        """
+
+        return 1
 
 
 class DataFrameModel(QAbstractTableModel):
@@ -121,28 +223,39 @@ class DataFrameModel(QAbstractTableModel):
         self.endResetModel()
 
 
-class DataFrameView(QTableView):
-    """pd.DataFrameを見るTableView"""
+class StretchTableView(QTableView):
+    """セルサイズ調節可能なTableView"""
 
     def __init__(self, *args, **kwargs) -> None:
         """初期化処理"""
 
-        super(DataFrameView, self).__init__(*args, **kwargs)
+        super(StretchTableView, self).__init__(*args, **kwargs)
         self.setAlternatingRowColors(True)
         self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
-    def set_row_height(self, height: int = 70) -> None:
-        """行の高さを変更する
+    def set_orientation_size(self, orientation: str) -> None:
+        """rows or columnsの幅を設定する
 
         Parameters
         ----------
-        height: int default=50
-            高さ
+        orientation: str
+            vertical or horizontal
         """
 
-        v_header = self.verticalHeader()
-        for v in range(v_header.count()):
-            v_header.setDefaultSectionSize(height)
+        if orientation.upper() == 'VERTICAL':
+            size: int = self.size().height()
+            header: QHeaderView = self.verticalHeader()
+            item_count: int = self.model().rowCount()
+
+        elif orientation.upper() == 'HORIZONTAL':
+            size: int = self.size().width()
+            header: QHeaderView = self.horizontalHeader()
+            item_count: int = self.model().rowCount()
+        else:
+            raise ValueError('orientation is vertical or horizontal.')
+
+        for v in range(header.count()):
+            header.setDefaultSectionSize(size / item_count)
 
 
 class LegendCheckBox(QCheckBox):
@@ -312,7 +425,7 @@ class SectionMeasureWidget(QWidget):
         main_layout.addWidget(splitter)
         self.setLayout(main_layout)
 
-        self.describe_view: DataFrameView = DataFrameView()
+        self.describe_view: StretchTableView = StretchTableView()
         self.progress: QProgressBar = QProgressBar()
         self.graph: gi.MainPlot = gi.MainPlot(ylabel)
         self.legend_list: LegendListWidget = LegendListWidget()
@@ -334,11 +447,20 @@ class SectionMeasureWidget(QWidget):
                            splitter.size().width() * 0.65,
                            splitter.size().width() * 0.10])
 
+        # 凡例とカーブ追加
         colors: np.ndarray = style.curve_colors(len(items))
         for idx, (item, color) in enumerate(zip(items, colors)):
             self.graph.add_curve(idx, color, item)
             self.legend_list.add_checkbox(idx, style.rgb_to_hex(color), item)
 
+        # describe_table初期表示
+        df: pd.DataFrame = pd.DataFrame(index=range(1), columns=items).fillna(0)
+        model: DataFrameModel = DataFrameModel(df.describe())
+        self.describe_view.setModel(model)
+        self.describe_view.set_orientation_size('horizontal')
+        self.describe_view.set_orientation_size('vertical')
+
+        # TODO sample plot 後で消す
         for curve in self.graph.curves.values():
             r1 = int(np.random.rand() * 10)
             r2 = r1 + 10
@@ -347,7 +469,6 @@ class SectionMeasureWidget(QWidget):
     def connect_slot(self) -> None:
         """slot接続"""
 
-        self.legend_list.checkStatusChanged.connect(self.graph.switch_curve_visible)
         self.legend_list.checkStatusChanged.connect(self.graph.switch_curve_visible)
 
 
