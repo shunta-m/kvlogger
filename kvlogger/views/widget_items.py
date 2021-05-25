@@ -1,5 +1,5 @@
 """UIで使用するウィジットアイテム"""
-from collections import defaultdict
+import datetime as dt
 from typing import List, Optional
 
 import numpy as np
@@ -8,9 +8,9 @@ from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             Signal, Slot)
 from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QFrame,
                                QHBoxLayout, QHeaderView, QLabel,
-                               QListWidget, QProgressBar, QListWidgetItem,
-                               QSplitter, QTableView, QVBoxLayout,
-                               QWidget)
+                               QListWidget, QProgressBar, QPushButton,
+                               QListWidgetItem, QSplitter, QTableView,
+                               QTextEdit, QVBoxLayout, QWidget)
 
 from kvlogger.views import CurveStatus
 from kvlogger.views import graph_items as gi
@@ -458,6 +458,31 @@ class SectionMeasureWidget(QWidget):
         """slot接続"""
 
         self.legend_list.checkStatusChanged.connect(self.graph.switch_curve_visible)
+
+
+class MemoWidget(QWidget):
+    """memo用ウィジット"""
+
+    def __init__(self, *args, **kwargs) -> None:
+        """初期化処理"""
+
+        super(MemoWidget, self).__init__(*args, **kwargs)
+        self.memo = QTextEdit()
+        self.memo.setPlaceholderText('MEMO')
+        self.timestamp = QPushButton('Timestamp')
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.memo)
+        layout.addWidget(self.timestamp, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.setLayout(layout)
+
+        self.timestamp.clicked.connect(self.stamp_time)
+
+    def stamp_time(self) -> None:
+        """memoにタイムスタンプ"""
+
+        now = dt.datetime.now().strftime('%Y/%m/%d %H:%M:%S\n')
+        self.memo.append(now)
 
 
 class StaticHLine(QFrame):

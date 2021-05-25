@@ -2,13 +2,14 @@
 from typing import List, Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QFont
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow,QMenuBar,
+from PySide6.QtGui import QAction, QFont, QIcon
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMenuBar,
                                QSplitter,
-                               QStatusBar, QTabWidget, QToolBar,
+                               QStatusBar, QTextEdit, QTabWidget, QToolBar,
                                QWidget)
 
 from kvlogger.views import style
+from kvlogger.views import icons
 from kvlogger.views import widget_items as wi
 
 
@@ -37,9 +38,9 @@ class MainWindowUI:
         self.make_widgets(main_window)
         self.make_layouts()
         self.set_layout(main_window)
-        self.set_menubar(main_window)
         self.set_statusbar(main_window)
         self.set_toolber(main_window)
+        self.set_menubar(main_window)
 
     def add_tab(self, section: str, parameter: List[str], unit: Optional[str] = None) -> None:
         """
@@ -67,9 +68,11 @@ class MainWindowUI:
 
         self.current_table = wi.StretchTableView()
         self.tab = QTabWidget()
+        self.memo = wi.MemoWidget()
         self.inside_tab: List[wi.SectionMeasureWidget] = []
 
         # statusbar用
+        self.status_label = QLabel('Not connected')
         self.stime_label = QLabel('11111111')
 
     def make_layouts(self) -> None:
@@ -86,9 +89,11 @@ class MainWindowUI:
 
         self.splitter.addWidget(self.current_table)
         self.splitter.addWidget(self.tab)
+        self.splitter.addWidget(self.memo)
 
         self.splitter.setSizes([self.splitter.size().width() * 0.1,
-                                self.splitter.size().width() * 0.9])
+                                self.splitter.size().width() * 0.8,
+                                self.splitter.size().width() * 0.1])
 
         # TODO テスト用
         self.add_tab('test', ['a', 'b'], 'T')
@@ -101,6 +106,7 @@ class MainWindowUI:
         window.setMenuBar(self.menubar)
 
         self.view_menu = self.menubar.addMenu('&View')
+        self.view_menu.addAction(self.toolbar.toggleViewAction())
 
     def set_statusbar(self, window: QMainWindow) -> None:
         """ステータスバーセット"""
@@ -108,8 +114,11 @@ class MainWindowUI:
         self.statusbar = QStatusBar()
         window.setStatusBar(self.statusbar)
 
-        self.statusbar.addPermanentWidget(QLabel('Start time: '))
-        self.statusbar.addPermanentWidget(self.stime_label)
+        self.statusbar.addPermanentWidget(QLabel('Status: '),)
+        self.statusbar.addPermanentWidget(self.status_label, 4)
+        self.statusbar.addPermanentWidget(QLabel('Start time: '),)
+        self.statusbar.addPermanentWidget(self.stime_label, 4)
+        self.statusbar.addPermanentWidget(QLabel('test'), 1)
 
     def set_toolber(self, window: QMainWindow) -> None:
         """ツールバーセット"""
@@ -118,6 +127,22 @@ class MainWindowUI:
         self.toolbar.setWindowTitle("ToolBar")
         window.addToolBar(self.toolbar)
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+
+        self.connect_action = QAction(QIcon(icons.CONNECT_ICON), 'Connect')
+        self.setting_action = QAction(QIcon(icons.SETTINGS_ICON), 'Settings')
+        self.run_action = QAction(QIcon(icons.RUN_ICON), 'Run')
+        self.stop_action = QAction(QIcon(icons.STOP_ICON), 'Stop')
+        self.open_action = QAction(QIcon(icons.OPEN_ICON), 'Open')
+
+        self.toolbar.addAction(self.connect_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.setting_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.run_action)
+        self.toolbar.addAction(self.stop_action)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(self.open_action)
+        self.toolbar.addSeparator()
 
 
 if __name__ == '__main__':
