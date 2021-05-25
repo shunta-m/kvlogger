@@ -12,7 +12,7 @@ from kvlogger.views import CurveStatus
 from kvlogger.views import style
 
 
-class SortableCurve(pg.PlotDataItem):
+class SortableCurve(pg.PlotCurveItem):
     """並べ替え可能なpg.PlotCurveItem
 
     sigSentInfo: Signal
@@ -26,6 +26,8 @@ class SortableCurve(pg.PlotDataItem):
     ----------
     idx: int
         整列番号
+    color: Tuple[int, int, int, int]
+        自身の色.
     """
 
     sigSentInfo: Signal = Signal(tuple)
@@ -45,6 +47,8 @@ class SortableCurve(pg.PlotDataItem):
         self.idx: int = idx
         super(SortableCurve, self).__init__(*args, **kwargs)
 
+        self.color: Tuple[int, int, int, int] = self.opts['pen'].color().getRgb()
+
     @Slot(int, QPointF)
     def send_info(self, emit_num: int, coord: QPointF) -> None:
         """
@@ -57,8 +61,8 @@ class SortableCurve(pg.PlotDataItem):
             マウスカーソルがあるグラフ座標
         """
 
-        if self.curve.mouseShape().contains(coord):
-            info: Tuple[str, tuple] = self.opts['name'], self.opts['pen']
+        if self.mouseShape().contains(coord):
+            info: Tuple[str, tuple] = self.opts['name'], self.color
 
             idx_y: int = np.argmin(np.abs(coord.y() - self.yData))
             x_diff: float = np.min(np.abs(coord.x() - self.xData[idx_y]))
@@ -104,6 +108,17 @@ class SortableCurve(pg.PlotDataItem):
             result = True
         return result
 
+    def set_data(self, values: np.ndarray) -> None:
+        """測定値をグラフ表示する.
+
+        Parameters
+        ----------
+        values: np.ndarray
+            測定値
+        """
+
+        self.setData(values)
+
 
 class RegionCurve(SortableCurve):
     """Region付curve"""
@@ -114,11 +129,10 @@ class RegionCurve(SortableCurve):
         self.min_: float = 0
         self.max_: float = 0
         super(RegionCurve, self).__init__(*args, **kwargs)
-
-        color: QColor = QColor(*self.opts['pen'], a=32)
+        color: QColor = QColor(*self.color[:-1], a=32)
         self.region = pg.LinearRegionItem(orientation='horizontal',
                                           brush=pg.mkBrush(color),
-                                          pen=pg.mkPen(color, width=0.5),
+                                          pen=pg.mkPen(color),
                                           movable=False)
         self.region.setRegion((0, 0))
         self.region.setZValue(10)
@@ -274,7 +288,6 @@ class CursorLabel(QGraphicsWidget):
         """
 
         self.curve_label.setText(style.curve_cursor(info[0]), color=info[1])
-        # self.update()
 
 
 class TimeAxisItem(pg.AxisItem):
