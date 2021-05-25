@@ -64,7 +64,7 @@ class InitConfig:
         items = [self.config.items(section) for section in self.measure_sections]
         return [col[1] for col in sum(items, []) if col[0] == 'unit']
 
-    def get_measure_section_items_name(self, section: str) -> List[str]:
+    def get_section_items_name(self, section: str) -> List[str]:
         """指定したセクション内のアイテム名を返す
 
         Parameters
@@ -81,8 +81,8 @@ class InitConfig:
         items: List[Tuple[str, str]] = self.config.items(section)
         return [col[0] for col in items if col[0] != 'unit']
 
-    def get_measure_section_items_dm(self, section: str) -> List[str]:
-        """指定したセクション内のDMを返す
+    def get_section_items_tn(self, section: str) -> List[str]:
+        """指定したセクション内のtype noを返す
 
         Parameters
         ----------
@@ -91,8 +91,8 @@ class InitConfig:
 
         Returns
         ----------
-        dm: Tuple[str]
-            DM
+        tn: Tuple[str]
+            タイプと番号. ex) DM****
         """
 
         items: List[Tuple[str, str]] = self.config.items(section)
@@ -117,6 +117,6 @@ class InitConfig:
 
 config = InitConfig()
 sections = config.measure_sections
-print(config.get_measure_section_items_dm(sections[0]))
-print(config.get_measure_section_items_name(sections[0]))
-print(config.get_measure_section_unit(sections[0]))
+print(config.get_section_items_tn(sections[0]))
+print(config.get_section_items_name(sections[0]))
+# print(config.get_measure_section_unit(sections[0]))

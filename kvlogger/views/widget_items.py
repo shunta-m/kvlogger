@@ -376,31 +376,31 @@ class LegendListWidget(QListWidget):
 class SectionMeasureWidget(QWidget):
     """セクションごとの測定画面"""
 
-    def __init__(self, section: str, items: List[str], *args, **kwargs) -> None:
+    def __init__(self, section: str, parameter: List[str], *args, **kwargs) -> None:
         """初期化処理
 
         Parameters
         ----------
         section: str
             セクション名
-        items: List[str]
-            セクション内のアイテム
+        parameter: List[str]
+            セクション内のパラメタ
         """
 
         super(SectionMeasureWidget, self).__init__(*args, **kwargs)
 
-        self.setup_ui(section, items)
+        self.setup_ui(section, parameter)
         self.connect_slot()
 
-    def setup_ui(self, ylabel: str, items: List[str]) -> None:
+    def setup_ui(self, ylabel: str, parameter: List[str]) -> None:
         """ui作成
 
         Parameters
         ----------
         ylabel: str
             グラフyラベル
-        items: List[str]
-            セクション内のアイテム
+        parameter: List[str]
+            セクション内のパラメタ
         """
 
         splitter: QSplitter = QSplitter()
@@ -437,13 +437,13 @@ class SectionMeasureWidget(QWidget):
                            splitter.size().width() * 0.10])
 
         # 凡例とカーブ追加
-        colors: np.ndarray = style.curve_colors(len(items))
-        for idx, (item, color) in enumerate(zip(items, colors)):
+        colors: np.ndarray = style.curve_colors(len(parameter))
+        for idx, (item, color) in enumerate(zip(parameter, colors)):
             self.graph.add_curve(idx, color, item)
             self.legend_list.add_checkbox(idx, style.rgb_to_hex(color), item)
 
         # describe_table初期表示
-        df: pd.DataFrame = pd.DataFrame(index=range(1), columns=items).fillna(0)
+        df: pd.DataFrame = pd.DataFrame(index=range(1), columns=parameter).fillna(0)
         model: DataFrameModel = DataFrameModel(df.describe())
         self.describe_view.setModel(model)
         self.describe_view.set_stretch()
