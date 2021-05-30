@@ -74,7 +74,7 @@ class InitConfig:
 
         Returns
         ----------
-        names: Tuple[str]
+        names: List[str]
             名前
         """
 
@@ -115,8 +115,8 @@ class InitConfig:
         return self.config[section]['unit']
 
 
-config = InitConfig()
-sections = config.measure_sections
-print(config.get_section_items_tn(sections[0]))
-print(config.get_section_items_name(sections[0]))
+# config = InitConfig()
+# sections = config.measure_sections
+# print(config.get_section_items_tn(sections[0]))
+# print(config.get_section_items_name(sections[0]))
 # print(config.get_measure_section_unit(sections[0]))

@@ -1,5 +1,7 @@
 .idea/
 tutorial/
 kvlogger/__pycache__/
+kvlogger/controllers/__pycache__/
+kvlogger/models/__pycache__/
 kvlogger/views/__pycache__/
 kvlogger/models/config.ini
