@@ -12,8 +12,9 @@ from kvlogger.views import CurveStatus
 from kvlogger.views import style
 
 
-class SortableCurve(pg.PlotCurveItem):
+class SortableCurve(pg.PlotDataItem):
     """並べ替え可能なpg.PlotCurveItem
+    pg.PlotCurveItem.setPosでスクロールさせながら表示する
 
     sigSentInfo: Signal
         自身の情報(名前, 色)を送信するシグナル
@@ -47,7 +48,7 @@ class SortableCurve(pg.PlotCurveItem):
         self.idx: int = idx
         super(SortableCurve, self).__init__(*args, **kwargs)
 
-        self.color: Tuple[int, int, int, int] = self.opts['pen'].color().getRgb()
+        self.color: Tuple[int, int, int] = tuple(self.opts['pen'])
 
     @Slot(int, QPointF)
     def send_info(self, emit_num: int, coord: QPointF) -> None:
@@ -61,7 +62,7 @@ class SortableCurve(pg.PlotCurveItem):
             マウスカーソルがあるグラフ座標
         """
 
-        if self.mouseShape().contains(coord):
+        if self.curve.mouseShape().contains(coord):
             info: Tuple[str, tuple] = self.opts['name'], self.color
 
             idx_y: int = np.argmin(np.abs(coord.y() - self.yData))
@@ -129,7 +130,8 @@ class RegionCurve(SortableCurve):
         self.min_: float = 0
         self.max_: float = 0
         super(RegionCurve, self).__init__(*args, **kwargs)
-        color: QColor = QColor(*self.color[:-1], a=32)
+        # color: QColor = QColor(*self.color[:-1], a=32)
+        color: QColor = QColor(*self.color, a=32)
         self.region = pg.LinearRegionItem(orientation='horizontal',
                                           brush=pg.mkBrush(color),
                                           pen=pg.mkPen(color),
