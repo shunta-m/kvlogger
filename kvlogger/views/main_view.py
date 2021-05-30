@@ -130,6 +130,7 @@ class MainWindowUI:
         self.run_action = QAction(QIcon(icons.RUN_ICON), 'Run')
         self.stop_action = QAction(QIcon(icons.STOP_ICON), 'Stop')
         self.open_action = QAction(QIcon(icons.OPEN_ICON), 'Open')
+        self.history_action = QAction(QIcon(icons.HISTORY_ICON), 'History')
 
         self.toolbar.addAction(self.connect_action)
         self.toolbar.addSeparator()
@@ -140,6 +141,9 @@ class MainWindowUI:
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.open_action)
         self.toolbar.addSeparator()
+        self.toolbar.addAction(self.history_action)
+        self.toolbar.addSeparator()
+
 
 
 if __name__ == '__main__':
