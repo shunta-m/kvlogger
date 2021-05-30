@@ -1,16 +1,17 @@
 """UIで使用するウィジットアイテム"""
 import datetime as dt
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
 from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             Signal, Slot)
+from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QFrame,
-                               QHBoxLayout, QHeaderView, QLabel,
-                               QListWidget, QProgressBar, QPushButton,
-                               QListWidgetItem, QSplitter, QTableView,
-                               QTextEdit, QVBoxLayout, QWidget)
+                               QHBoxLayout, QItemDelegate, QHeaderView,
+                               QLabel, QListWidget, QProgressBar,
+                               QPushButton, QListWidgetItem, QSplitter,
+                               QStyleOptionViewItem, QTableView, QTextEdit, QVBoxLayout, QWidget)
 
 from kvlogger.views import CurveStatus
 from kvlogger.views import graph_items as gi
@@ -151,7 +152,7 @@ class DataFrameModel(QAbstractTableModel):
 
         return self.data_frame.shape[1]
 
-    def data(self, index: QModelIndex, role: int = 0) -> Optional[str]:
+    def data(self, index: QModelIndex, role: int = 0) -> Any:
         """ビューが指定している座標のデータを返す
 
         Parameters
@@ -171,8 +172,8 @@ class DataFrameModel(QAbstractTableModel):
         if not index.isValid():
             return
 
-        if role == 0:
-            return str(self.data_frame.iloc[index.row(), index.column()])
+        if role == Qt.DisplayRole:
+            return float(self.data_frame.iloc[index.row(), index.column()])
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> str:
         """sectionで指定したカラムインデックスの値を返す
@@ -224,6 +225,22 @@ class DataFrameModel(QAbstractTableModel):
         self.endResetModel()
 
 
+class AlignDelegate(QItemDelegate):
+    """文字、数字によって左寄せか右寄せかを変える"""
+    def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
+        type_cell = type(index.data())
+        if type_cell is str:
+            option.displayAlignment = Qt.AlignLeft
+        elif type_cell is int:
+            option.displayAlignment = Qt.AlignRight
+        elif type_cell is float:
+            option.displayAlignment = Qt.AlignRight
+        else:
+            option.displayAlignment = Qt.AlignCenter
+
+        QItemDelegate.paint(self, painter, option, index)
+
+
 class StretchTableView(QTableView):
     """セルサイズ調節可能なTableView"""
 
@@ -233,6 +250,7 @@ class StretchTableView(QTableView):
         super(StretchTableView, self).__init__(*args, **kwargs)
         self.setAlternatingRowColors(True)
         self.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self.setItemDelegate(AlignDelegate())
 
     def set_stretch(self) -> None:
         """rows or columnsの幅View全体にする"""
@@ -448,11 +466,11 @@ class SectionMeasureWidget(QWidget):
         self.describe_view.setModel(model)
         self.describe_view.set_stretch()
 
-        # TODO sample plot 後で消す
-        for curve in self.graph.curves.values():
-            r1 = int(np.random.rand() * 10)
-            r2 = r1 + 10
-            curve.set_data(np.random.randint(r1, r2, 100))
+        # # TODO sample plot 後で消す
+        # for curve in self.graph.curves.values():
+        #     r1 = int(np.random.rand() * 10)
+        #     r2 = r1 + 10
+        #     curve.set_data(np.random.randint(r1, r2, 100))
 
     def connect_slot(self) -> None:
         """slot接続"""

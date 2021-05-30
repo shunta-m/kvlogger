@@ -42,22 +42,22 @@ class MainWindowUI:
         self.set_toolber(main_window)
         self.set_menubar(main_window)
 
-    def add_tab(self, section: str, parameter: List[str], unit: Optional[str] = None) -> None:
+    def add_tab(self, section: str, items: List[str], unit: Optional[str] = None) -> None:
         """
 
         Parameters
         ----------
         section: str
             セクション名. タブに表示される.
-        parameter:str
-            パラメタ.
+        items:str
+            セクション内のアイテム
         unit: Optional[str] default=None
             パラメタの単位
         """
 
         if unit is not None:
             section += ' [' + unit + ']'
-        widget: wi.SectionMeasureWidget = wi.SectionMeasureWidget(section, parameter)
+        widget: wi.SectionMeasureWidget = wi.SectionMeasureWidget(section, items)
         self.tab.addTab(widget, section)
 
     def make_widgets(self, window: QMainWindow) -> None:
@@ -94,9 +94,6 @@ class MainWindowUI:
         self.splitter.setSizes([self.splitter.size().width() * 0.1,
                                 self.splitter.size().width() * 0.8,
                                 self.splitter.size().width() * 0.1])
-
-        # TODO テスト用
-        self.add_tab('test', ['a', 'b'], 'T')
 
     def set_menubar(self, window: QMainWindow) -> None:
         """メニューバーセット"""
@@ -155,5 +152,9 @@ if __name__ == '__main__':
     ui = MainWindowUI()
     ui.setup_ui(win)
     win.show()
+    # TODO テスト用
+    ui.add_tab('test', ['a', 'b'], 'T')
+    ui.add_tab('test', ['a', 'b'], 'T')
+    ui.add_tab('test', ['a', 'b'], 'T')
 
     sys.exit(app.exec())
