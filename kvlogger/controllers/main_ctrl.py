@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtGui import QResizeEvent
-from PySide6.QtWidgets import QMainWindow
+from PySide6.QtWidgets import QMainWindow, QDialog
 
+from kvlogger.controllers import connect_ctrl as cc
 from kvlogger.models import settings
 from kvlogger.views import main_view
 from kvlogger.views import widget_items as wi
@@ -37,6 +38,21 @@ class MainWindow(QMainWindow):
 
     def connect_slot(self) -> None:
         """スロット接続"""
+
+        self.ui.connect_action.triggered.connect(self.connect_device)
+
+    @Slot()
+    def connect_device(self) -> None:
+        """機器に接続する"""
+
+        ip, port = self.config.server
+
+        dialog = cc.ConnectDialog()
+        dialog.ui.ip_edit.setText(ip)
+        dialog.ui.port_edit.setText(str(port))
+        result = dialog.exec()
+        if result == QDialog.Accepted:
+            print('ok')
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         """画面サイズが変更されたとき発生するイベント

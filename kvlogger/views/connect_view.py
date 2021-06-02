@@ -1,6 +1,7 @@
 """接続ボタン押下時に表示する画面"""
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont, QIntValidator, QValidator
-from PySide6.QtWidgets import (QDialog, QFormLayout, QHBoxLayout,
+from PySide6.QtWidgets import (QDialog, QFormLayout, QHBoxLayout, QDialogButtonBox,
                                QLabel, QLineEdit, QPushButton, QVBoxLayout)
 
 
@@ -55,11 +56,11 @@ class ConnectDialogUI:
 
         dialog.setModal(True)
 
-        self.make_widgets()
+        self.make_widgets(dialog)
         self.make_layouts()
         self.set_layout(dialog)
 
-    def make_widgets(self) -> None:
+    def make_widgets(self, dialog: QDialog) -> None:
         """UI作成"""
 
         self.ip_edit = QLineEdit()
@@ -69,8 +70,9 @@ class ConnectDialogUI:
         self.port_edit = QLineEdit()
         self.port_edit.setValidator(QIntValidator())
 
-        self.ok_btn = QPushButton('ok')
-        self.cancel_btn = QPushButton('cancel')
+        self.btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, dialog)
+        self.btns.accepted.connect(dialog.accept)
+        self.btns.rejected.connect(dialog.reject)
 
     def make_layouts(self) -> None:
         """レイアウト作成"""
@@ -86,13 +88,10 @@ class ConnectDialogUI:
         self.main_lay.addWidget(QLabel('接続先'))
         self.main_lay.addLayout(self.form_lay)
         self.main_lay.addSpacing(10)
-        self.main_lay.addLayout(self.btn_lay)
+        self.main_lay.addWidget(self.btns)
 
         self.form_lay.addRow('IP Address', self.ip_edit)
         self.form_lay.addRow('Port', self.port_edit)
-
-        self.btn_lay.addWidget(self.ok_btn)
-        self.btn_lay.addWidget(self.cancel_btn)
 
 
 if __name__ == '__main__':
