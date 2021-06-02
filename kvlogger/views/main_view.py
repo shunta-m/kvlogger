@@ -29,7 +29,7 @@ class MainWindowUI:
         main_window.setWindowTitle('KV Logger')
 
         font = QFont()
-        font.setPointSize(width / 100)
+        font.setPointSize(12)
         main_window.setFont(font)
 
         self.tab_widgets: List[wi.SectionMeasureWidget] = []
