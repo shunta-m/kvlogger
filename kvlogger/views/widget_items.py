@@ -63,7 +63,7 @@ class CurrentValueModel(QAbstractTableModel):
 
         return len(self._data)
 
-    def data(self, index: QModelIndex, role: int = 0) -> Optional[str]:
+    def data(self, index: QModelIndex, role: int = 0) -> Optional[float]:
         """ビューが指定している座標のデータを返す
 
         Parameters
@@ -76,7 +76,7 @@ class CurrentValueModel(QAbstractTableModel):
 
         Returns
         ----------
-        data: str
+        data: float
             ビューに要求されたデータ
         """
 
@@ -84,7 +84,7 @@ class CurrentValueModel(QAbstractTableModel):
             return
 
         if role == 0:
-            return str(self._data[index.row()].value)
+            return self._data[index.row()].value
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> str:
         """sectionで指定したカラムインデックスの値を返す

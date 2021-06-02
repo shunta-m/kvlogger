@@ -23,6 +23,13 @@ class InitConfig:
         self.config.read(configfile, encoding='utf-8')
 
     @property
+    def all_items_name(self) -> List[str]:
+        """測定パラメタの名前を返す"""
+
+        items = [self.config.items(section) for section in self.measure_sections]
+        return [col[0] for col in sum(items, []) if col[0] != 'unit']
+
+    @property
     def demo(self) -> bool:
         """demoモード判別"""
 
@@ -30,13 +37,6 @@ class InitConfig:
         if section[0][1].upper() == 'TRUE':
             return True
         return False
-
-    @property
-    def items_name(self) -> List[str]:
-        """測定パラメタの名前を返す"""
-
-        items = [self.config.items(section) for section in self.measure_sections]
-        return [col[0] for col in sum(items, []) if col[0] != 'unit']
 
     @property
     def measure_sections(self) -> List[str]:
@@ -113,7 +113,6 @@ class InitConfig:
         """
 
         return self.config[section]['unit']
-
 
 # config = InitConfig()
 # sections = config.measure_sections

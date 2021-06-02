@@ -4,11 +4,8 @@ from typing import List, Optional
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFont, QIcon
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMenuBar,
-                               QSplitter,
-                               QStatusBar, QTextEdit, QTabWidget, QToolBar,
-                               QWidget)
+                               QSplitter, QStatusBar, QTabWidget, QToolBar, QWidget)
 
-from kvlogger.views import style
 from kvlogger.views import icons
 from kvlogger.views import widget_items as wi
 
@@ -32,8 +29,10 @@ class MainWindowUI:
         main_window.setWindowTitle('KV Logger')
 
         font = QFont()
-        font.setPointSize(12)
+        font.setPointSize(width / 100)
         main_window.setFont(font)
+
+        self.tab_widgets: List[wi.SectionMeasureWidget] = []
 
         self.make_widgets(main_window)
         self.make_layouts()
@@ -59,6 +58,7 @@ class MainWindowUI:
             section += ' [' + unit + ']'
         widget: wi.SectionMeasureWidget = wi.SectionMeasureWidget(section, items)
         self.tab.addTab(widget, section)
+        self.tab_widgets.append(widget)
 
     def make_widgets(self, window: QMainWindow) -> None:
         """UI作成"""
@@ -69,7 +69,6 @@ class MainWindowUI:
         self.current_table = wi.StretchTableView()
         self.tab = QTabWidget()
         self.memo = wi.MemoWidget()
-        self.inside_tab: List[wi.SectionMeasureWidget] = []
 
         # statusbar用
         self.status_label = QLabel('Not connected')
@@ -111,9 +110,9 @@ class MainWindowUI:
         self.statusbar = QStatusBar()
         window.setStatusBar(self.statusbar)
 
-        self.statusbar.addPermanentWidget(QLabel('Status: '),)
+        self.statusbar.addPermanentWidget(QLabel('Status: '), )
         self.statusbar.addPermanentWidget(self.status_label, 4)
-        self.statusbar.addPermanentWidget(QLabel('Start time: '),)
+        self.statusbar.addPermanentWidget(QLabel('Start time: '), )
         self.statusbar.addPermanentWidget(self.stime_label, 4)
         self.statusbar.addPermanentWidget(QLabel('test'), 1)
 
@@ -130,7 +129,7 @@ class MainWindowUI:
         self.run_action = QAction(QIcon(icons.RUN_ICON), 'Run')
         self.stop_action = QAction(QIcon(icons.STOP_ICON), 'Stop')
         self.open_action = QAction(QIcon(icons.OPEN_ICON), 'Open')
-        self.history_action = QAction(QIcon(icons.HISTORY_ICON), 'History')
+        # self.history_action = QAction(QIcon(icons.HISTORY_ICON), 'History')
 
         self.toolbar.addAction(self.connect_action)
         self.toolbar.addSeparator()
@@ -141,9 +140,8 @@ class MainWindowUI:
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.open_action)
         self.toolbar.addSeparator()
-        self.toolbar.addAction(self.history_action)
-        self.toolbar.addSeparator()
-
+        # self.toolbar.addAction(self.history_action)
+        # self.toolbar.addSeparator()
 
 
 if __name__ == '__main__':
