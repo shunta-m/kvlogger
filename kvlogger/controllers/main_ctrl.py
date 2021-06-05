@@ -1,11 +1,11 @@
 """ソフトのメイン制御"""
-from typing import List
+from typing import List, Optional, Tuple
 
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog
 
 from kvlogger.models import model
-from kvlogger.views import (main_view, widget_items as wi)
+from kvlogger.views import (connect_view, main_view, widget_items as wi)
 
 
 class MainController:
@@ -40,8 +40,19 @@ class MainController:
     def connect_slot(self) -> None:
         """uiイベントとスロット接続"""
 
+        self.ui.connect_action.triggered.connect(self.connect_kv)
+
+    @Slot()
+    def connect_kv(self) -> None:
+        """keyenceデバイスと接続する"""
+
+        dialog = connect_view.ConnectDialog()
+        result: Optional[Tuple[str, int]] = dialog.exec_dialog(*self.model.config.server)
+
+        if result is None:
+            return
+
     def start(self) -> None:
         """ソフト立上"""
 
         self.view.show()
-
