@@ -21,15 +21,18 @@ class Unit(enum.Enum):
 class SettingsUI:
     """設定画面UI"""
 
-    def setup_ui(self, dialog: QDialog) -> None:
+    def setup_ui(self, dialog: QDialog, width: int = 500) -> None:
         """UIを設定する
 
         Parameters
         ----------
         dialog: QtWidgets.QDialog
             ウィジットを設置するダイアログ
+        width: int default=500
+            ウィンドウ幅
         """
 
+        dialog.resize(width, -1)
         dialog.setWindowTitle('設定')
         font = QFont()
         font.setPointSize(10)

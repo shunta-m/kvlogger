@@ -126,7 +126,7 @@ class MainWindowUI:
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
 
         self.connect_action = QAction(QIcon(icons.CONNECT_ICON), '接続')
-        self.setting_action = QAction(QIcon(icons.SETTINGS_ICON), '設定')
+        self.settings_action = QAction(QIcon(icons.SETTINGS_ICON), '設定')
         self.run_action = QAction(QIcon(icons.RUN_ICON), '開始')
         self.stop_action = QAction(QIcon(icons.STOP_ICON), '終了')
         self.open_action = QAction(QIcon(icons.OPEN_ICON), '開く')
@@ -134,7 +134,7 @@ class MainWindowUI:
 
         self.toolbar.addAction(self.connect_action)
         self.toolbar.addSeparator()
-        self.toolbar.addAction(self.setting_action)
+        self.toolbar.addAction(self.settings_action)
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.run_action)
         self.toolbar.addAction(self.stop_action)

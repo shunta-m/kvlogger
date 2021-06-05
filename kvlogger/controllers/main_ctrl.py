@@ -5,7 +5,10 @@ from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from kvlogger.models import model
-from kvlogger.views import (connect_view, main_view, widget_items as wi)
+from kvlogger.views import (connect_view as cv,
+                            main_view as mv,
+                            settings_view as sv,
+                            widget_items as wi)
 
 
 class MainController:
@@ -22,7 +25,7 @@ class MainController:
 
         self.app = app
         self.model = model.Model()
-        self.view = main_view.MainWindow()
+        self.view = mv.MainWindow()
         # UIへアクセスする用のショートカット
         self.ui = self.view.ui
 
@@ -41,12 +44,13 @@ class MainController:
         """uiイベントとスロット接続"""
 
         self.ui.connect_action.triggered.connect(self.connect_kv)
+        self.ui.settings_action.triggered.connect(self.settings)
 
     @Slot()
     def connect_kv(self) -> None:
         """keyenceデバイスと接続する"""
 
-        dialog = connect_view.ConnectDialog()
+        dialog = cv.ConnectDialog()
         result: Optional[Tuple[str, int]] = dialog.exec_dialog(self.model.config.server)
 
         if result is None:
@@ -70,6 +74,16 @@ class MainController:
             self.model.client.disconnect()
             self.switch_slot(self.ui.connect_action.triggered, self.connect_kv)
             self.view.disconnected()
+
+    @Slot()
+    def settings(self) -> None:
+        """測定設定"""
+
+        dialog = sv.SettingsDialog()
+        result: Optional[Tuple[str, str, float, int]] = dialog.exec_dialog()
+
+        if result is None:
+            return
 
     def start(self) -> None:
         """ソフト立上"""

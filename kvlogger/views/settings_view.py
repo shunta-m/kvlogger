@@ -1,7 +1,8 @@
 """設定画面view"""
 from typing import Optional, Tuple
+from pathlib import Path
 
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import QDialog, QFileDialog
 
 from kvlogger.views import settings_view_ui as svu
 
@@ -15,6 +16,22 @@ class SettingsDialog(QDialog):
         super(SettingsDialog, self).__init__(*args, **kwargs)
         self.ui = svu.SettingsUI()
         self.ui.setup_ui(self)
+        self.ui.open_btn.clicked.connect(self.select_save_dir)
+
+    def calc_interval(self) -> float:
+        """測定間隔を計算する"""
+
+        value: int = self.ui.interval_spin.value()
+        unit: str = self.ui.interval_unit_combo.currentText()
+
+        if unit == svu.Unit.MILLISECONDS.value:
+            return value / 1000
+        elif unit == svu.Unit.SECONDS.value:
+            return value
+        elif unit == svu.Unit.MINUTES.value:
+            return value * 60
+        else:
+            return value * 3600
 
     def exec_dialog(self) -> Optional[Tuple[str, str, float, int]]:
         """ダイアログモーダル表示
@@ -41,20 +58,16 @@ class SettingsDialog(QDialog):
 
             return save_dir, filename, interval, data_points
 
-    def calc_interval(self) -> float:
-        """測定間隔を計算する"""
+    def select_save_dir(self) -> None:
+        """保存先フォルダを選択する"""
 
-        value: int = self.ui.interval_spin.value()
-        unit: str = self.ui.interval_unit_combo.currentText()
+        selected_dir: str = QFileDialog.getExistingDirectory(self,
+                                                             '保存フォルダを選択',
+                                                             str(Path.cwd().parent))
+        if selected_dir == '':
+            return
 
-        if unit == svu.Unit.MILLISECONDS.value:
-            return value / 1000
-        elif unit == svu.Unit.SECONDS.value:
-            return value
-        elif unit == svu.Unit.MINUTES.value:
-            return value * 60
-        else:
-            return value * 3600
+        self.ui.save_dir_edit.setText(selected_dir)
 
 
 if __name__ == '__main__':
