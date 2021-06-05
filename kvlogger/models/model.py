@@ -1,5 +1,5 @@
 """modelクラス"""
-from kvlogger.models import configs
+from kvlogger.models import configs, client
 
 
 class Model:
@@ -9,3 +9,4 @@ class Model:
         """初期化処理"""
 
         self.config = configs.InitConfig()
+        self.client = client.KVClient()

@@ -16,19 +16,17 @@ class ConnectDialog(QDialog):
         self.ui = connect_view_ui.ConnectDialogUI()
         self.ui.set_up(self)
 
-    def exec_dialog(self, ip: str, port: int) -> Optional[Tuple[str, int]]:
+    def exec_dialog(self, address: Tuple[str, int]) -> Optional[Tuple[str, int]]:
         """ダイアログモーダル表示
 
         Parameters
         ----------
-        ip: str
-            IPアドレス
-        port: int
-            ポート番号
+        address: Tuple[str, int]
+            IPアドレスとポート番号
         """
 
-        self.ui.ip_edit.setText(ip)
-        self.ui.port_edit.setText(str(port))
+        self.ui.ip_edit.setText(address[0])
+        self.ui.port_edit.setText(str(address[1]))
         result = self.exec()
 
         if result == self.Accepted:

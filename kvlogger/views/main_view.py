@@ -3,7 +3,7 @@ import datetime as dt
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon, QResizeEvent
-from PySide6.QtWidgets import QMainWindow
+from PySide6.QtWidgets import QMainWindow, QMessageBox
 
 from kvlogger.views import icons, main_view_ui
 
@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
         self.ui.connect_action.setIcon(QIcon(icons.DISCONNECT_ICON))
         self.ui.connect_action.setText('Disconnect')
         self.ui.status_label.setText('Connected')
+        QMessageBox.information(self, 'Information', '接続しました')
 
     def disconnected(self) -> None:
         """機器切断したときにアイコンを変更する"""
@@ -46,9 +47,18 @@ class MainWindow(QMainWindow):
         self.ui.connect_action.setIcon(QIcon(icons.CONNECT_ICON))
         self.ui.connect_action.setText('Connect')
         self.ui.status_label.setText('Not connected')
+        QMessageBox.information(self, 'Information', '切断しました')
 
-    def error(self) -> None:
-        """エラー発生時の画面設定"""
+    def error(self, ex: Exception) -> None:
+        """エラー発生時の画面設定
+
+        Parameters
+        ----------
+        ex: Exception
+            エラー内容
+        """
+
+        QMessageBox.critical(self, 'Error', f"{ex}")
         self.ui.status_label.setText('Error')
 
     def ready(self) -> None:
