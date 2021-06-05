@@ -79,11 +79,23 @@ class MainController:
     def settings(self) -> None:
         """測定設定"""
 
-        dialog = sv.SettingsDialog()
-        result: Optional[Tuple[str, str, float, int]] = dialog.exec_dialog()
+        units = [unit.value for unit in model.settings.Unit]
+        dialog = sv.SettingsDialog(units, self.model.settings.interval_unit)
+
+        now_settings = (self.model.settings.save_dir,
+                        self.model.settings.interval_value,
+                        self.model.settings.interval_unit,
+                        self.model.settings.data_point,
+                        )
+
+        result: Optional[Tuple[str, str, float, str, int]] = dialog.exec_dialog(*now_settings)
 
         if result is None:
             return
+        try:
+            self.model.settings.update(result)
+        except model.settings.DirectoryExistsError as ex:
+            self.view.error(ex)
 
     def start(self) -> None:
         """ソフト立上"""

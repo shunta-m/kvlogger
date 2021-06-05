@@ -1,5 +1,5 @@
 """modelクラス"""
-from kvlogger.models import configs, client
+from kvlogger.models import (configs, client, settings)
 
 
 class Model:
@@ -10,3 +10,4 @@ class Model:
 
         self.config = configs.InitConfig()
         self.client = client.KVClient()
+        self.settings = settings.Settings()

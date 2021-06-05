@@ -1,5 +1,5 @@
 """設定画面view"""
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 from pathlib import Path
 
 from PySide6.QtWidgets import QDialog, QFileDialog
@@ -10,31 +10,39 @@ from kvlogger.views import settings_view_ui as svu
 class SettingsDialog(QDialog):
     """設定ダイアログ"""
 
-    def __init__(self, *args, **kwargs) -> None:
-        """初期化処理"""
+    def __init__(self, units: List[str], ini_unit: str, *args, **kwargs) -> None:
+        """初期化処理
+
+        Parameters
+        ----------
+        units: List[str]
+            コンボボックスの単位
+        ini_unit: str
+            初期表示のコンボボックスインデックス
+        """
 
         super(SettingsDialog, self).__init__(*args, **kwargs)
         self.ui = svu.SettingsUI()
         self.ui.setup_ui(self)
+
+        self.ui.interval_unit_combo.addItems(units)
+        self.ui.interval_unit_combo.setCurrentText(ini_unit)
+
         self.ui.open_btn.clicked.connect(self.select_save_dir)
 
-    def calc_interval(self) -> float:
-        """測定間隔を計算する"""
-
-        value: int = self.ui.interval_spin.value()
-        unit: str = self.ui.interval_unit_combo.currentText()
-
-        if unit == svu.Unit.MILLISECONDS.value:
-            return value / 1000
-        elif unit == svu.Unit.SECONDS.value:
-            return value
-        elif unit == svu.Unit.MINUTES.value:
-            return value * 60
-        else:
-            return value * 3600
-
-    def exec_dialog(self) -> Optional[Tuple[str, str, float, int]]:
+    def exec_dialog(self, save_dir: Path, interval: float, unit: int, data_points: int) -> Optional[tuple]:
         """ダイアログモーダル表示
+
+        Parameters
+        ----------
+        save_dir: str
+            保存先ディレクトリパス
+        interval: tuple
+            測定間隔. (value, unit)
+        unit: int
+            測定間隔の単位
+        data_points: int
+            ファイル保存点数
 
         Returns
         ----------
@@ -43,20 +51,33 @@ class SettingsDialog(QDialog):
         filename: str
             保存ファイル名
         interval: float
-            測定間隔
+            測定間隔.
+        unit: str
+            測定間隔の単位
         data_points: int
             ファイル保存点数
         """
+
+        self.ui.save_dir_edit.setText(str(save_dir))
+        self.ui.interval_spin.setValue(interval)
+        self.ui.interval_unit_combo.setCurrentText(unit)
+        self.ui.data_point_spin.setValue(data_points)
 
         result = self.exec()
 
         if result == self.Accepted:
             save_dir: str = self.ui.save_dir_edit.text()
             filename: str = self.ui.file_name_edit.text()
-            interval: float = self.calc_interval()
+            interval: float = self.ui.interval_spin.value()
+            unit: str = self.ui.interval_unit_combo.currentText()
             data_points: int = self.ui.data_point_spin.value()
 
-            return save_dir, filename, interval, data_points
+            return save_dir, filename, interval, unit, data_points
+
+    def get_interval(self) -> Tuple[float, int]:
+        """測定間隔を取得する"""
+
+        return self.ui.interval_spin.value(), self.ui.interval_unit_combo.currentIndex()
 
     def select_save_dir(self) -> None:
         """保存先フォルダを選択する"""
@@ -75,6 +96,6 @@ if __name__ == '__main__':
     from PySide6.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
-    dia = SettingsDialog()
-    dia.exec_dialog()
+    dia = SettingsDialog(['a', 'b', 'c'], 'a')
+    dia.exec_dialog(Path.cwd(), 5, 1, 1000)
     sys.exit(app.exec())
