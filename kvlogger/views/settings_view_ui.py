@@ -1,4 +1,6 @@
 """設定画面UI"""
+import enum
+
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox,
@@ -6,6 +8,14 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox,
                                QLineEdit, QPushButton, QSpinBox, QVBoxLayout)
 
 from kvlogger.views import widget_items as wi
+
+
+class Unit(enum.Enum):
+    """測定間隔単位"""
+    MILLISECONDS = 'ms'
+    SECONDS = 's'
+    MINUTES = 'min'
+    HOURS = 'h'
 
 
 class SettingsUI:
@@ -44,7 +54,7 @@ class SettingsUI:
         self.interval_spin.setValue(1)
 
         self.interval_unit_combo = QComboBox()
-        self.interval_unit_combo.addItems(['ms', 's', 'min', 'h'])
+        self.interval_unit_combo.addItems([unit.value for unit in Unit])
         self.interval_unit_combo.setCurrentIndex(1)
 
         self.data_point_spin = QSpinBox()
