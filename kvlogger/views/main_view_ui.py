@@ -71,7 +71,8 @@ class MainWindowUI:
         self.memo = wi.MemoWidget()
 
         # statusbar用
-        self.status_label = QLabel('未接続')
+        self.connect_status_label = QLabel('未接続')
+        self.settings_status_label = QLabel('未設定')
         self.stime_label = QLabel('11111111')
         self.clock_label = QLabel('')
 
@@ -111,8 +112,10 @@ class MainWindowUI:
         self.statusbar = QStatusBar()
         window.setStatusBar(self.statusbar)
 
-        self.statusbar.addPermanentWidget(QLabel('状態: '), )
-        self.statusbar.addPermanentWidget(self.status_label, 4)
+        self.statusbar.addPermanentWidget(QLabel('接続状態: '), )
+        self.statusbar.addPermanentWidget(self.connect_status_label, 4)
+        self.statusbar.addPermanentWidget(QLabel('設定: '), )
+        self.statusbar.addPermanentWidget(self.settings_status_label, 4)
         self.statusbar.addPermanentWidget(QLabel('開始時刻: '), )
         self.statusbar.addPermanentWidget(self.stime_label, 4)
         self.statusbar.addPermanentWidget(self.clock_label, 1)

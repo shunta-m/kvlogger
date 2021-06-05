@@ -58,10 +58,14 @@ class MainController:
 
         try:
             self.model.client.connect(result)
-            self.switch_slot(self.ui.connect_action.triggered, self.disconnect_kv)
-            self.view.connected()
         except OSError as ex:
             self.view.error(ex)
+            return
+
+        self.switch_slot(self.ui.connect_action.triggered, self.disconnect_kv)
+        self.view.connected()
+        if self.model.settings.status == model.settings.Status.SET:
+            self.view.ready()
 
     @Slot()
     def disconnect_kv(self) -> None:
@@ -94,8 +98,15 @@ class MainController:
             return
         try:
             self.model.settings.update(result)
+            self.model.settings.status = model.settings.Status.SET
         except model.settings.DirectoryExistsError as ex:
+            self.model.settings.status = model.settings.Status.NOT_SET
             self.view.error(ex)
+            return
+
+        self.view.set_settings()
+        if self.model.client.status == model.client.Status.CONNECTED:
+            self.view.ready()
 
     def start(self) -> None:
         """ソフト立上"""

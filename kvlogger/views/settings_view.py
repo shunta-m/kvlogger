@@ -2,7 +2,7 @@
 from typing import List, Optional, Tuple
 from pathlib import Path
 
-from PySide6.QtWidgets import QDialog, QFileDialog
+from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
 
 from kvlogger.views import settings_view_ui as svu
 
@@ -29,6 +29,17 @@ class SettingsDialog(QDialog):
         self.ui.interval_unit_combo.setCurrentText(ini_unit)
 
         self.ui.open_btn.clicked.connect(self.select_save_dir)
+
+        self.ui.btns.accepted.disconnect()
+        self.ui.btns.accepted.connect(self.accept_)
+
+    def accept_(self) -> None:
+        """okボタンが押されたときの動作"""
+
+        if self.ui.file_name_edit.text() == '':
+            QMessageBox.warning(self, 'Warning', 'ファイル名を入力してください')
+            return
+        self.accept()
 
     def exec_dialog(self, save_dir: Path, interval: float, unit: int, data_points: int) -> Optional[tuple]:
         """ダイアログモーダル表示

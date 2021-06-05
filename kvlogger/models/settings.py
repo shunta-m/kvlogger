@@ -18,6 +18,12 @@ class Unit(enum.Enum):
     HOURS = 'h'
 
 
+class Status(enum.Flag):
+    """設定状態"""
+    NOT_SET = 0
+    SET = 0
+
+
 @dataclasses.dataclass
 class Settings:
     """測定設定保持クラス
@@ -34,6 +40,8 @@ class Settings:
         測定間隔の単位
     data_point: int default=10000
         ファイルに保存するデータ数
+    status: Status default=Status.NOT_SET
+        設定が完了したかのフラグ
     """
 
     _save_dir: Path = Path().cwd().parent
@@ -41,6 +49,7 @@ class Settings:
     interval_value: float = 1.0
     interval_unit: str = Unit.SECONDS.value
     data_point: int = 10000
+    status: Status = dataclasses.field(default=Status.NOT_SET, init=False)
 
     @property
     def save_dir(self) -> Optional[Path]:

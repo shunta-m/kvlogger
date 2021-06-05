@@ -11,7 +11,6 @@ class Status(enum.Flag):
 
     NOT_CONNECTED = enum.auto()
     CONNECTED = enum.auto()
-    RUN = enum.auto()
     ERROR = enum.auto()
 
 
