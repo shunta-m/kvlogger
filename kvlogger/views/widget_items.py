@@ -437,12 +437,12 @@ class SectionMeasureWidget(QWidget):
         self.graph: gi.MainPlot = gi.MainPlot(ylabel)
         self.legend_list: LegendListWidget = LegendListWidget()
 
-        left_layout.addWidget(QLabel('Describe'))
+        left_layout.addWidget(QLabel('要約量'))
         left_layout.addWidget(self.describe_view)
         left_layout.addWidget(self.progress)
         left_widget.setLayout(left_layout)
 
-        right_layout.addWidget(QLabel('Legend'))
+        right_layout.addWidget(QLabel('凡例'))
         right_layout.addWidget(self.legend_list)
         right_widget.setLayout(right_layout)
 
@@ -486,7 +486,7 @@ class MemoWidget(QWidget):
 
         super(MemoWidget, self).__init__(*args, **kwargs)
         self.memo = QTextEdit()
-        self.memo.setPlaceholderText('MEMO')
+        self.memo.setPlaceholderText('メモ')
         self.timestamp = QPushButton('Timestamp')
 
         layout = QHBoxLayout()

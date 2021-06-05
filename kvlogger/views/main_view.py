@@ -37,16 +37,16 @@ class MainWindow(QMainWindow):
         """機器接続したときにアイコンを変更する"""
 
         self.ui.connect_action.setIcon(QIcon(icons.DISCONNECT_ICON))
-        self.ui.connect_action.setText('Disconnect')
-        self.ui.status_label.setText('Connected')
+        self.ui.connect_action.setText('切断')
+        self.ui.status_label.setText('接続済み')
         QMessageBox.information(self, 'Information', '接続しました')
 
     def disconnected(self) -> None:
         """機器切断したときにアイコンを変更する"""
 
         self.ui.connect_action.setIcon(QIcon(icons.CONNECT_ICON))
-        self.ui.connect_action.setText('Connect')
-        self.ui.status_label.setText('Not connected')
+        self.ui.connect_action.setText('接続')
+        self.ui.status_label.setText('未接続')
         QMessageBox.information(self, 'Information', '切断しました')
 
     def error(self, ex: Exception) -> None:
@@ -59,13 +59,13 @@ class MainWindow(QMainWindow):
         """
 
         QMessageBox.critical(self, 'Error', f"{ex}")
-        self.ui.status_label.setText('Error')
+        self.ui.status_label.setText('エラー')
 
     def ready(self) -> None:
         """測定可能時の画面設定"""
 
         self.ui.run_action.setEnabled(True)
-        self.ui.status_label.setText('Ready')
+        self.ui.status_label.setText('測定準備終了')
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         """画面サイズが変更されたとき発生するイベント

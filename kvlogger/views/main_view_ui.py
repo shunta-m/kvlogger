@@ -13,7 +13,7 @@ from kvlogger.views import widget_items as wi
 class MainWindowUI:
     """UI"""
 
-    def setup_ui(self, main_window: QMainWindow, width: int = 1200) -> None:
+    def setup_ui(self, main_window: QMainWindow, width: int = 1400) -> None:
         """UIを設定する
         Parameters
         ----------
@@ -71,7 +71,7 @@ class MainWindowUI:
         self.memo = wi.MemoWidget()
 
         # statusbar用
-        self.status_label = QLabel('Not connected')
+        self.status_label = QLabel('未接続')
         self.stime_label = QLabel('11111111')
         self.clock_label = QLabel('')
 
@@ -111,9 +111,9 @@ class MainWindowUI:
         self.statusbar = QStatusBar()
         window.setStatusBar(self.statusbar)
 
-        self.statusbar.addPermanentWidget(QLabel('Status: '), )
+        self.statusbar.addPermanentWidget(QLabel('状態: '), )
         self.statusbar.addPermanentWidget(self.status_label, 4)
-        self.statusbar.addPermanentWidget(QLabel('Start time: '), )
+        self.statusbar.addPermanentWidget(QLabel('開始時刻: '), )
         self.statusbar.addPermanentWidget(self.stime_label, 4)
         self.statusbar.addPermanentWidget(self.clock_label, 1)
 
@@ -125,11 +125,11 @@ class MainWindowUI:
         window.addToolBar(self.toolbar)
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
 
-        self.connect_action = QAction(QIcon(icons.CONNECT_ICON), 'Connect')
-        self.setting_action = QAction(QIcon(icons.SETTINGS_ICON), 'Settings')
-        self.run_action = QAction(QIcon(icons.RUN_ICON), 'Run')
-        self.stop_action = QAction(QIcon(icons.STOP_ICON), 'Stop')
-        self.open_action = QAction(QIcon(icons.OPEN_ICON), 'Open')
+        self.connect_action = QAction(QIcon(icons.CONNECT_ICON), '接続')
+        self.setting_action = QAction(QIcon(icons.SETTINGS_ICON), '設定')
+        self.run_action = QAction(QIcon(icons.RUN_ICON), '開始')
+        self.stop_action = QAction(QIcon(icons.STOP_ICON), '終了')
+        self.open_action = QAction(QIcon(icons.OPEN_ICON), '開く')
         # self.history_action = QAction(QIcon(icons.HISTORY_ICON), 'History')
 
         self.toolbar.addAction(self.connect_action)
