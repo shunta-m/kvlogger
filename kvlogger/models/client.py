@@ -3,6 +3,8 @@ import enum
 import socket
 from typing import Tuple
 
+from kvlogger.models import command
+
 
 class Status(enum.Flag):
     """機器接続状況"""
@@ -51,3 +53,31 @@ class KVClient:
         self.client.close()
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.status = Status.NOT_CONNECTED
+
+    def get_device_name(self) -> str:
+        """接続中のデバイス名取得"""
+
+        message: str = command.StaticCommand.DEVICE
+        self.client.send(message.encode('ascii'))
+
+        return self.client.recv(64).decode('utf-8')
+
+    def get_value(self, d_type_no: str, *args) -> float:
+        """デバイス値取得
+
+        Parameters
+        ----------
+        d_type_no: str
+            デバイス種別と番号. ex) DM1000
+
+        Returns
+        -------
+        response: float
+            keyenceから取得した値
+        """
+
+        message: str = command.make_read_command(d_type_no, *args)
+        self.client.send(message.encode('ascii'))
+
+        response: str = self.client.recv(64).decode('utf-8')
+        return float(response)

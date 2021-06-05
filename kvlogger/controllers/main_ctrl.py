@@ -2,7 +2,7 @@
 from typing import Callable, List, Optional, Tuple
 
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from kvlogger.models import model
 from kvlogger.views import (connect_view, main_view, widget_items as wi)
