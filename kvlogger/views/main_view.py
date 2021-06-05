@@ -1,162 +1,96 @@
-"""メイン画面UI"""
-from typing import List, Optional
+"""メイン画面"""
+import datetime as dt
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QFont, QIcon
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMenuBar,
-                               QSplitter, QStatusBar, QTabWidget, QToolBar, QWidget)
+from PySide6.QtCore import QTimer
+from PySide6.QtGui import QIcon, QResizeEvent
+from PySide6.QtWidgets import QMainWindow
 
-from kvlogger.views import icons
-from kvlogger.views import widget_items as wi
+from kvlogger.views import icons, main_view_ui
 
 
-class MainWindowUI:
-    """UI"""
+class MainWindow(QMainWindow):
+    """メイン画面"""
 
-    def setup_ui(self, main_window: QMainWindow, width: int = 1200) -> None:
-        """UIを設定する
+    def __init__(self, *args, **kwargs) -> None:
+        """初期化処理"""
+
+        super(MainWindow, self).__init__(*args, **kwargs)
+        self.ui = main_view_ui.MainWindowUI()
+        self.ui.setup_ui(self)
+
+        self.ui.run_action.setDisabled(True)
+        self.ui.stop_action.setDisabled(True)
+        self.clock()
+
+        self.timer = QTimer()
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.clock)
+        self.timer.start()
+
+    def clock(self) -> None:
+        """現在時刻表示"""
+
+        now: str = dt.datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+        self.ui.clock_label.setText(now)
+
+    def connected(self) -> None:
+        """機器接続したときにアイコンを変更する"""
+
+        self.ui.connect_action.setIcon(QIcon(icons.DISCONNECT_ICON))
+        self.ui.connect_action.setText('Disconnect')
+        self.ui.status_label.setText('Connected')
+
+    def disconnected(self) -> None:
+        """機器切断したときにアイコンを変更する"""
+
+        self.ui.connect_action.setIcon(QIcon(icons.CONNECT_ICON))
+        self.ui.connect_action.setText('Connect')
+        self.ui.status_label.setText('Not connected')
+
+    def error(self) -> None:
+        """エラー発生時の画面設定"""
+        self.ui.status_label.setText('Error')
+
+    def ready(self) -> None:
+        """測定可能時の画面設定"""
+
+        self.ui.run_action.setEnabled(True)
+        self.ui.status_label.setText('Ready')
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """画面サイズが変更されたとき発生するイベント
+        テーブルサイズを調整する
+
         Parameters
         ----------
-        main_window: QtWidgets.QMainWindow
-            ウィジットを設置する画面
-        width: int default=1600
-            画面幅
+        event: QResizeEvent
+            イベント信号
         """
 
-        height: int = int(width * 5 / 8)
+        self.ui.current_table.set_stretch()
 
-        main_window.resize(width, height)
-        main_window.setWindowTitle('KV Logger')
+    def set(self) -> None:
+        """測定設定後の画面変更"""
 
-        font = QFont()
-        font.setPointSize(12)
-        main_window.setFont(font)
+    def started(self) -> None:
+        """測定開始後のアイコン表示変更"""
 
-        self.tab_widgets: List[wi.SectionMeasureWidget] = []
+        self.ui.run_action.setDisabled(True)
+        self.ui.stop_action.setEnabled(True)
 
-        self.make_widgets(main_window)
-        self.make_layouts()
-        self.set_layout(main_window)
-        self.set_statusbar(main_window)
-        self.set_toolber(main_window)
-        self.set_menubar(main_window)
+    def stopped(self) -> None:
+        """測定終了後のアイコン表示変更"""
 
-    def add_tab(self, section: str, items: List[str], unit: Optional[str] = None) -> None:
-        """
-
-        Parameters
-        ----------
-        section: str
-            セクション名. タブに表示される.
-        items:str
-            セクション内のアイテム
-        unit: Optional[str] default=None
-            パラメタの単位
-        """
-
-        if unit is not None:
-            section += ' [' + unit + ']'
-        widget: wi.SectionMeasureWidget = wi.SectionMeasureWidget(section, items)
-        self.tab.addTab(widget, section)
-        self.tab_widgets.append(widget)
-
-    def make_widgets(self, window: QMainWindow) -> None:
-        """UI作成"""
-
-        self.central_widget = QWidget(window)
-        self.splitter = QSplitter(Qt.Orientation.Vertical)
-
-        self.current_table = wi.StretchTableView()
-        self.tab = QTabWidget()
-        self.memo = wi.MemoWidget()
-
-        # statusbar用
-        self.status_label = QLabel('Not connected')
-        self.stime_label = QLabel('11111111')
-
-    def make_layouts(self) -> None:
-        """レイアウト作成"""
-
-        self.main_layout = QHBoxLayout()
-
-    def set_layout(self, window: QMainWindow) -> None:
-        """レイアウト設定"""
-
-        window.setCentralWidget(self.central_widget)
-        self.central_widget.setLayout(self.main_layout)
-        self.main_layout.addWidget(self.splitter)
-
-        self.splitter.addWidget(self.current_table)
-        self.splitter.addWidget(self.tab)
-        self.splitter.addWidget(self.memo)
-
-        self.splitter.setSizes([self.splitter.size().width() * 0.1,
-                                self.splitter.size().width() * 0.8,
-                                self.splitter.size().width() * 0.1])
-
-    def set_menubar(self, window: QMainWindow) -> None:
-        """メニューバーセット"""
-
-        self.menubar = QMenuBar()  # Make a menu without parent.
-        self.menubar.setToolTip('ツールバーの表示/非表示変更<br>ショートカット：Ctrl V')
-        window.setMenuBar(self.menubar)
-
-        self.view_menu = self.menubar.addMenu('&View')
-        self.view_menu.addAction(self.toolbar.toggleViewAction())
-
-    def set_statusbar(self, window: QMainWindow) -> None:
-        """ステータスバーセット"""
-
-        self.statusbar = QStatusBar()
-        window.setStatusBar(self.statusbar)
-
-        self.statusbar.addPermanentWidget(QLabel('Status: '), )
-        self.statusbar.addPermanentWidget(self.status_label, 4)
-        self.statusbar.addPermanentWidget(QLabel('Start time: '), )
-        self.statusbar.addPermanentWidget(self.stime_label, 4)
-        self.statusbar.addPermanentWidget(QLabel('test'), 1)
-
-    def set_toolber(self, window: QMainWindow) -> None:
-        """ツールバーセット"""
-
-        self.toolbar = QToolBar()
-        self.toolbar.setWindowTitle("ToolBar")
-        window.addToolBar(self.toolbar)
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-
-        self.connect_action = QAction(QIcon(icons.CONNECT_ICON), 'Connect')
-        self.setting_action = QAction(QIcon(icons.SETTINGS_ICON), 'Settings')
-        self.run_action = QAction(QIcon(icons.RUN_ICON), 'Run')
-        self.stop_action = QAction(QIcon(icons.STOP_ICON), 'Stop')
-        self.open_action = QAction(QIcon(icons.OPEN_ICON), 'Open')
-        # self.history_action = QAction(QIcon(icons.HISTORY_ICON), 'History')
-
-        self.toolbar.addAction(self.connect_action)
-        self.toolbar.addSeparator()
-        self.toolbar.addAction(self.setting_action)
-        self.toolbar.addSeparator()
-        self.toolbar.addAction(self.run_action)
-        self.toolbar.addAction(self.stop_action)
-        self.toolbar.addSeparator()
-        self.toolbar.addAction(self.open_action)
-        self.toolbar.addSeparator()
-        # self.toolbar.addAction(self.history_action)
-        # self.toolbar.addSeparator()
+        self.ui.run_action.setEnabled(True)
+        self.ui.stop_action.setDisabled(True)
 
 
 if __name__ == '__main__':
     import sys
-
     from PySide6.QtWidgets import QApplication
 
     app = QApplication(sys.argv)
-    win = QMainWindow()
-    ui = MainWindowUI()
-    ui.setup_ui(win)
+    win = MainWindow()
+    win.ready()
     win.show()
-    # TODO テスト用
-    ui.add_tab('test', ['a', 'b'], 'T')
-    ui.add_tab('test', ['a', 'b'], 'T')
-    ui.add_tab('test', ['a', 'b'], 'T')
-
     sys.exit(app.exec())
