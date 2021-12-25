@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFont, QIcon
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMenuBar,QTextEdit,
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMenuBar, QTextEdit,
                                QSplitter, QStatusBar, QToolBar, QWidget)
 
 from kvlogger.views import icons
@@ -47,8 +47,8 @@ class MainWindowUI:
 
         self.values_table = wi.StretchTableView()
         self.plot = wi.CentralWidget({'test': [f"test{i}" for i in range(2)], 'test2': [f"test2_{i}" for i in range(5)],
-                                     'tes3': [f"test3_{i}" for i in range(2)],
-                                     'test4': [f"test4_{i}" for i in range(5)]})
+                                      'tes3': [f"test3_{i}" for i in range(2)],
+                                      'test4': [f"test4_{i}" for i in range(5)]})
         self.log_txt_edit = QTextEdit()
 
         # statusbar用

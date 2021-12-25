@@ -309,7 +309,7 @@ class CentralWidget(QWidget):
 
         self.setLayout(main_layout)
 
-        self.plot: gi.CustomMultiAxisWidget = gi.CustomMultiAxisWidget(data_name)
+        self.plot: gi.CustomMultiAxisWidget = gi.CustomMultiAxisWidget(data_name, 1000)
         self.legend_list = CheckListWidget()
 
         main_layout.addWidget(self.plot, 9)

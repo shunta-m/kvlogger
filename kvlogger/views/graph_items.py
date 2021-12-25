@@ -3,7 +3,7 @@ import datetime as dt
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
-from PySide6.QtCore import Slot, Signal
+from PySide6.QtCore import Slot, Signal, QPointF
 from PySide6.QtWidgets import QApplication, QGraphicsWidget, QGraphicsGridLayout
 import pyqtgraph as pg
 
@@ -183,7 +183,10 @@ class MultiAxisWidget(pg.GraphicsLayoutWidget):
         y軸追加ウィジット
     """
 
-    def __init__(self, data_name: Dict[str, List[str]], top_items: Optional[list] = None, yspacer_count: int = 1,
+    changedPlotMethod: Signal = Signal()
+
+    def __init__(self, data_name: Dict[str, List[str]], data_maxlen: int, top_items: Optional[list] = None,
+                 yspacer_count: int = 1,
                  *args, **kwargs) -> None:
         """初期化処理
 
@@ -196,6 +199,10 @@ class MultiAxisWidget(pg.GraphicsLayoutWidget):
         yspacer_count: int default=1
             yaxesのスペーサー数
         """
+
+        self.current_len: int = 0
+        self.data_maxlen: int = data_maxlen
+        self.data_pos: int = 0
 
         super(MultiAxisWidget, self).__init__(*args, **kwargs)
 
@@ -227,13 +234,16 @@ class MultiAxisWidget(pg.GraphicsLayoutWidget):
         # 1つの軸に付き1つのviewboxを割り当てる
         for i, yaxis in enumerate(self.yaxes.yaxes):
             view_box = pg.ViewBox()
-            view_box.setXLink(self.plot)  # x軸をリンク挿せる
+            view_box.setXLink(self.plot)  # x軸をリンク
             self.plot.scene().addItem(view_box)  # plotItem内にviewBoxを追加
 
             yaxis.linkToView(view_box)  # 追加するy軸とviewBoxをリンクさせる
 
             for name in data_name[yaxis.labelText]:
-                data = pg.PlotDataItem(name=name)
+                nan = np.empty(data_maxlen)
+                nan[1:] = np.nan
+                nan[0] = 0  # set_dataのpassに引っ掛からないようjに1つだけnan以外にする
+                data = pg.PlotDataItem(y=nan, name=name)
                 view_box.addItem(data)
                 self.data.append(data)
 
@@ -246,18 +256,51 @@ class MultiAxisWidget(pg.GraphicsLayoutWidget):
         self.update_views()
         self.reset_range()
 
-    def set_multi_value(self, values: List[Sequence]) -> None:
-        """複数データ入力
+    def set_data(self, values: list) -> None:
+        """データ入力.
+           データ長がmaxlenに到達していない時用
 
         Parameters
         ----------
         values: List[Sequence]
-            入力するデータ
+            入力データ
+            [[val, val, ...], [val, val, ...], [val, val, ...], ,...]
         """
 
         for data, value in zip(self.data, values):
-            data.clear()
-            data.setData(value)
+            if all(np.isnan(data.yData)):  # 全てnp.nanだったら == 非表示だったら
+                pass
+            ydata = data.yData
+            ydata[self.current_len] = value
+            data.setData(ydata)
+
+        self.current_len += 1
+
+        if self.current_len == self.data_maxlen - 1:
+            self.changedPlotMethod.emit()
+            self.reset_range()
+
+    def set_data_maxlen(self, values: list) -> None:
+        """データ入力.
+           データ長がmaxlenに到達した時用
+
+        Parameters
+        ----------
+        values: List[Sequence]
+            入力データ
+            [[val, val, ...], [val, val, ...], [val, val, ...], ,...]
+        """
+
+        self.data_pos += 1
+        for data, value in zip(self.data, values):
+            if all(np.isnan(data.yData)):  # 全てnp.nanだったら == 非表示だったら
+                pass
+            ydata = data.yData
+            ydata[:-1] = ydata[1:]
+            ydata[-1] = value
+            data.setData(ydata)
+
+            data.setPos(self.data_pos, 0)
 
     def reset_range(self) -> None:
         """表示範囲をデータに合わせる"""
@@ -287,43 +330,62 @@ class CustomMultiAxisWidget(MultiAxisWidget):
         trend_line上の値を送信する信号
         get_trend_value() で使用
     """
-    getTrendValues = Signal(str, list)
+    getLineValues = Signal(str, list)
 
-    def __init__(self, data_name: Dict[str, List[str]], *args, **kwargs) -> None:
-        super(CustomMultiAxisWidget, self).__init__(data_name, yspacer_count=2, *args, **kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        super(CustomMultiAxisWidget, self).__init__(yspacer_count=2, *args, **kwargs)
 
         self.plot.setAxisItems({'bottom': TimeAxisItem('date', orientation='bottom')})
 
-        self.trend_line = pg.InfiniteLine(angle=90, movable=True, pen=pg.mkPen('#fff'))
-        self.plot.addItem(self.trend_line, ignoreBounds=True)
+        self.line = pg.InfiniteLine(angle=90, movable=True, pen=pg.mkPen('#ffd700'),
+                                    hoverPen=pg.mkPen('#ffd700'))
+        self.plot.addItem(self.line, ignoreBounds=True)
 
-        self.trend_line.sigPositionChanged.connect(self.get_trend_value)
+        self.proxy = pg.SignalProxy(self.plot.scene().sigMouseMoved,
+                                    rateLimit=60,
+                                    slot=self.get_mouse_position)
 
     @Slot()
-    def get_trend_value(self) -> None:
-        """trend_lineと重なっている座標の値を取得し、getTrendValues信号を送信する"""
+    def get_mouse_position(self, ev: Tuple[QPointF]) -> None:
+        """マウス座標にtrend_lineを移動させ, そのx座標時のデータを取得する
 
-        # ########## trend_lineのx値取得 ##############
-        x_pos: float = self.trend_line.getXPos()
-        x_time: str = TimeAxisItem.calc_time(x_pos)
-        x_idx = int(x_pos)
+        Parameters
+        ----------
+        ev: Tuple[QtCore.QPointF]
+            画面のピクセル座標
+        """
+
+        pos = ev[0]
+        if not self.plot.sceneBoundingRect().contains(pos):
+            # posがplot内の座標ではなかったら終了
+            return
+
+        # ########## グラフの座標取得 ##############
+        # ex) coord=PySide6.QtCore.QPointF(141.6549821809388, 4.725564511858496)
+        coord = self.plot.vb.mapSceneToView(pos)
+        x_coord: float = coord.x()
+        int_x_coord: int = int(x_coord) - self.data_pos
+        if 0 > int_x_coord or int_x_coord >= self.current_len:  # データが無い範囲の時終了
+            return
         # ########################
 
-        # ########## trend_lineのy値取得 ##############
+        # ########### データ取得 ###############
+        data_time: str = TimeAxisItem.calc_time(x_coord)
         # [(value, 'curve name'), (**, **), ...]の形式
-        trend_values: List[Tuple[Optional[float], str]] = []
+        line_values: List[Tuple[Optional[float], str]] = []
         for data in self.data:
             try:
-                trend_values.append((data.yData[x_idx], data.name()))
-            except TypeError:
-                trend_values.append((None, data.name()))
+                line_values.append((data.yData[int_x_coord], data.name()))
+            except TypeError:  # data.yDataがNoneの時
+                line_values.append((None, data.name()))
         # ########################
 
-        self.getTrendValues.emit(x_time, trend_values)
+        self.line.setPos(int(coord.x()))
+        self.getLineValues.emit(data_time, line_values)
 
-    # todo 変える必要あり(2021/12/19)
-    def switch_curve_visible(self, idx: int, _: bool, data: Optional[np.ndarray] = None) -> None:
-        """curveとregionの表示を切り替える
+    def switch_curve_visible(self, idx: int, _: bool, values: Optional[np.ndarray] = None) -> None:
+        """curveとregionの表示を切り替える.
+           valuesがNoneだったら非表示にする
 
         Parameters
         ----------
@@ -331,47 +393,77 @@ class CustomMultiAxisWidget(MultiAxisWidget):
             curve番号
         _: bool
             使用しない
-        data: Optional[np.ndarray] default=None
+        values: Optional[np.ndarray] default=None
             入力データ
         """
 
-        if data is None:
-            data = np.empty(0)
-
-        self.data[idx].setData(data)
+        if values is None:
+            invisible_values = np.empty(self.data_maxlen)
+            invisible_values[:] = np.nan
+            self.data[idx].setData(invisible_values)
+        else:
+            self.data[idx].setData(values)
 
 
 if __name__ == '__main__':
     import sys
 
-    test_d = {'y1': ['a', 'b', 'c'], 'y2': ['d', 'e'], 'y3': ['f']}
+    test_d = {'y1': ['a'], 'y2': ['b', 'c'], 'y3': ['d', 'e', 'f']}
+
+    len_ = 100
 
     app = QApplication(sys.argv)
-    window = CustomMultiAxisWidget(test_d)
-    # window = CustomMultiAxisWidget([f"y{i}" for i in range(3, 0, -1)])
+    window = CustomMultiAxisWidget(test_d, len_)
 
-    data1 = np.random.randint(0, 10, 10)
-    data2 = np.random.randint(0, 10, 10)
-    data3 = np.random.randint(0, 10, 10)
-    data4 = np.random.randint(0, 10, 10)
-    data5 = np.random.randint(0, 10, 10)
-    data6 = np.empty(0)
-    # data6 = np.random.randint(0, 10, 10)
-    # data7 = np.random.randint(0, 10, 10)
-    # data8 = np.random.randint(0, 10, 10)
-    # data9 = np.random.randint(0, 10, 10)
-    # data10 = np.random.randint(0, 10, 10)
+    window.data[0].setPen(pg.mkPen('r'))
+    window.data[1].setPen(pg.mkPen('b'))
+    window.data[2].setPen(pg.mkPen('g'))
+    window.data[3].setPen(pg.mkPen('#ff0'))
+    window.data[4].setPen(pg.mkPen('#f0f'))
+    window.data[5].setPen(pg.mkPen('#0ff'))
 
-    window.set_multi_value([data1, data2, data3, data4, data5, data6])
+
+    def update2():
+        l = []
+        for i in range(6):
+            l.append(np.random.normal())
+
+        window.set_data(l)
+
+
+    def update3():
+        l = []
+        for i in range(6):
+            l.append(np.random.normal())
+
+        window.set_data_maxlen(l)
+
+
+    timer = pg.QtCore.QTimer()
+    timer.timeout.connect(update2)
+    timer.start(100)
+
+
+    def switch():
+        timer.timeout.disconnect()
+        timer.timeout.connect(update3)
+
+
+    window.changedPlotMethod.connect(switch)
+
+    #
+    #
+    # window.set_multi_value([data1, data2, data3, data4, data5, data6])
     # data6, data7, data8, data9, data10])
 
     # for i, color in enumerate(['b', 'g', 'r']):
     #     window.yaxes.yaxes[i].setPen(pg.mkPen(color))
     #     window.data[i].setPen(pg.mkPen(color))
 
-    window.update_views()
-    window.reset_range()
+    # window.update_views()
+    # window.reset_range()
 
     window.show()
+
     # window.showMaximized()
     sys.exit(app.exec())
