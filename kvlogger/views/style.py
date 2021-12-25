@@ -36,15 +36,16 @@ def changed_checkbox_style(color: str, flag: bool) -> str:
 
     """
     if flag is True:
-        return f"""QCheckBox {{font-size:12pt;}}
+        return f"""QCheckBox {{font-size:12pt; border-width: 0px;}}
                    QCheckBox::indicator {{margin: 0 0 2 10;
                                           height: 10px;
                                           width: 18px;
                                           Background-color: {color};
                                           image:url()}}
+                    }}
                 """
     else:
-        return f"""QCheckBox {{font-size:12pt;background-color: #f08080;}}
+        return f"""QCheckBox {{font-size:12pt; background-color: #f08080; border-width: 0px;}}
                    QCheckBox::indicator {{margin: 0 0 2 10;
                                           height: 10px;
                                           width: 18px;
