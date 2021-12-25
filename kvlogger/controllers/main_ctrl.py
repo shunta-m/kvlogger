@@ -33,10 +33,10 @@ class MainController:
         table_model: wi.CurrentValueModel = wi.CurrentValueModel(self.model.config.all_items_name)
         self.ui.values_table.setModel(table_model)
         # tab
-        for section in self.model.config.measure_sections:
-            items: List[str] = self.model.config.get_section_items_name(section)
-            unit: str = self.model.config.get_measure_section_unit(section)
-            self.ui.add_tab(section, items, unit)
+        # for section in self.model.config.measure_sections:
+        #     items: List[str] = self.model.config.get_section_items_name(section)
+        #     unit: str = self.model.config.get_measure_section_unit(section)
+        #     self.ui.add_tab(section, items, unit)
 
         self.connect_slot()
 
@@ -83,7 +83,7 @@ class MainController:
     def settings(self) -> None:
         """測定設定"""
 
-        units = [unit.value for unit in model.settings.Unit]
+        units = [unit.trend_value for unit in model.settings.Unit]
         dialog = sv.SettingsDialog(units, self.model.settings.interval_unit)
 
         now_settings = (self.model.settings.save_dir,

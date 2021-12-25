@@ -16,21 +16,25 @@ from kvlogger.views import style
 
 
 class CurrentValue:
-    """現在地を保持する"""
+    """現在値を保持する"""
 
-    def __init__(self, col: str, value: float = 0.0) -> None:
+    def __init__(self, col: str, trend_value: float = 0.0, line_value: float = 0.0) -> None:
         """初期化処理
 
         Parameters
         ----------
         col: str
             カラム名
-        value: float default=0.0
+        trend_value: float default=0.0
             値
         """
 
         self.col = col
-        self.value = value
+        self.trend_value = trend_value
+        self.line_value = line_value
+
+    def to_list(self) -> list:
+        return [self.trend_value, self.line_value]
 
 
 class CurrentValueModel(QAbstractTableModel):
@@ -81,7 +85,7 @@ class CurrentValueModel(QAbstractTableModel):
             return
 
         if role == 0:
-            return self._data[index.row()].value
+            return self._data[index.column()].to_list()[index.row()]
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> str:
         """sectionで指定したカラムインデックスの値を返す
@@ -105,6 +109,9 @@ class CurrentValueModel(QAbstractTableModel):
         if orientation == Qt.Orientation.Horizontal and role == 0:
             return str(self._data[section].col)
 
+        if orientation == Qt.Orientation.Vertical and role == 0:
+            return str(['trend', 'line'][section])
+
     def rowCount(self, parent: QModelIndex = ...) -> int:
         """行数を返す
 
@@ -114,7 +121,7 @@ class CurrentValueModel(QAbstractTableModel):
             行数
         """
 
-        return 1
+        return 2
 
 
 class AlignDelegate(QItemDelegate):
@@ -123,13 +130,13 @@ class AlignDelegate(QItemDelegate):
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         type_cell = type(index.data())
         if type_cell is str:
-            option.displayAlignment = Qt.AlignLeft
+            option.displayAlignment = Qt.AlignLeft | Qt.AlignVCenter
         elif type_cell is int:
-            option.displayAlignment = Qt.AlignRight
+            option.displayAlignment = Qt.AlignRight | Qt.AlignVCenter
         elif type_cell is float:
-            option.displayAlignment = Qt.AlignRight
+            option.displayAlignment = Qt.AlignRight | Qt.AlignVCenter
         else:
-            option.displayAlignment = Qt.AlignCenter
+            option.displayAlignment = Qt.AlignCenter | Qt.AlignVCenter
 
         QItemDelegate.paint(self, painter, option, index)
 
@@ -368,5 +375,6 @@ if __name__ == '__main__':
 
         win.show()
         sys.exit(app.exec())
+
 
     test()

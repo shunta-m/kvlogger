@@ -79,16 +79,16 @@ class SettingsDialog(QDialog):
         if result == self.Accepted:
             save_dir: str = self.ui.save_dir_edit.text()
             filename: str = self.ui.file_name_edit.text()
-            interval: float = self.ui.interval_spin.value()
+            interval: float = self.ui.interval_spin.trend_value()
             unit: str = self.ui.interval_unit_combo.currentText()
-            data_points: int = self.ui.data_point_spin.value()
+            data_points: int = self.ui.data_point_spin.trend_value()
 
             return save_dir, filename, interval, unit, data_points
 
     def get_interval(self) -> Tuple[float, int]:
         """測定間隔を取得する"""
 
-        return self.ui.interval_spin.value(), self.ui.interval_unit_combo.currentIndex()
+        return self.ui.interval_spin.trend_value(), self.ui.interval_unit_combo.currentIndex()
 
     def select_save_dir(self) -> None:
         """保存先フォルダを選択する"""
