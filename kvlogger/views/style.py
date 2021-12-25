@@ -4,31 +4,34 @@ from colour import Color
 import numpy as np
 from PySide6.QtGui import QFont
 
+#
+# def changed_checkbox_style(color: str, state: bool) -> str:
+#     """凡例用チェックボックスのスタイルシード
+#
+#     Parameters
+#     ----------
+#     color: str
+#         インジゲーターの色
+#     state: bool
+#         チェックボックスの状態
+#     """
+#
+#     if state is False:
+#         return f"""::indicator{{background-color: {color};}}"""
+#     else:
+#         return f"""::indicator{{background-color: {color};}}
+#                    ::item{{background-color: #f08080;}}"""
 
-def curve_check(color: str, flag: int) -> str:
-    if flag == 1:
+
+def changed_checkbox_style(color: str, flag: bool) -> str:
+    if flag is True:
         return f"""QCheckBox {{font-size:12pt;}}
                    QCheckBox::indicator {{Background-color: {color};}}
                 """
-    elif flag == 2:
-        return f"""QCheckBox {{font-size:12pt;color:blue}}
+    else:
+        return f"""QCheckBox {{font-size:12pt;background-color: #f08080;}}
                        QCheckBox::indicator {{Background-color: {color};}}
                 """
-    return f"""QCheckBox {{font-size:12pt;color:red}}
-                   QCheckBox::indicator {{Background-color: {color};}}
-            """
-
-
-# def curve_only_check(color: str) -> str:
-#     return f"""QCheckBox {{font-size:12pt;color:blue}}
-#                    QCheckBox::indicator {{Background-color: {color};}}
-#             """
-#
-#
-# def curve_invisible_check(color: str) -> str:
-#     return f"""QCheckBox {{font-size:12pt;color:red}}
-#                    QCheckBox::indicator {{Background-color: {color};}}
-#             """
 
 
 def rgb_to_hex(rgb: Sequence) -> str:

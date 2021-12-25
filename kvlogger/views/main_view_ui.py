@@ -3,8 +3,8 @@ from typing import List, Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFont, QIcon
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMenuBar,
-                               QSplitter, QStatusBar, QTabWidget, QToolBar, QWidget)
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMainWindow, QMenuBar,QTextEdit,
+                               QSplitter, QStatusBar, QToolBar, QWidget)
 
 from kvlogger.views import icons
 from kvlogger.views import widget_items as wi
@@ -32,8 +32,6 @@ class MainWindowUI:
         font.setPointSize(12)
         main_window.setFont(font)
 
-        self.tab_widgets: List[wi.SectionMeasureWidget] = []
-
         self.make_widgets(main_window)
         self.make_layouts()
         self.set_layout(main_window)
@@ -41,34 +39,17 @@ class MainWindowUI:
         self.set_toolber(main_window)
         self.set_menubar(main_window)
 
-    def add_tab(self, section: str, items: List[str], unit: Optional[str] = None) -> None:
-        """
-
-        Parameters
-        ----------
-        section: str
-            セクション名. タブに表示される.
-        items:str
-            セクション内のアイテム
-        unit: Optional[str] default=None
-            パラメタの単位
-        """
-
-        if unit is not None:
-            section += ' [' + unit + ']'
-        widget: wi.SectionMeasureWidget = wi.SectionMeasureWidget(section, items)
-        self.tab.addTab(widget, section)
-        self.tab_widgets.append(widget)
-
     def make_widgets(self, window: QMainWindow) -> None:
         """UI作成"""
 
         self.central_widget = QWidget(window)
         self.splitter = QSplitter(Qt.Orientation.Vertical)
 
-        self.current_table = wi.StretchTableView()
-        self.tab = QTabWidget()
-        self.memo = wi.MemoWidget()
+        self.values_table = wi.StretchTableView()
+        self.plot = wi.CentralWidget({'test': [f"test{i}" for i in range(2)], 'test2': [f"test2_{i}" for i in range(5)],
+                                     'tes3': [f"test3_{i}" for i in range(2)],
+                                     'test4': [f"test4_{i}" for i in range(5)]})
+        self.log_txt_edit = QTextEdit()
 
         # statusbar用
         self.connect_status_label = QLabel('未接続')
@@ -88,13 +69,14 @@ class MainWindowUI:
         self.central_widget.setLayout(self.main_layout)
         self.main_layout.addWidget(self.splitter)
 
-        self.splitter.addWidget(self.current_table)
-        self.splitter.addWidget(self.tab)
-        self.splitter.addWidget(self.memo)
+        self.splitter.addWidget(self.values_table)
+        self.splitter.addWidget(self.plot)
+        self.splitter.addWidget(self.log_txt_edit)
 
         self.splitter.setSizes([self.splitter.size().width() * 0.1,
                                 self.splitter.size().width() * 0.8,
-                                self.splitter.size().width() * 0.1])
+                                self.splitter.size().width() * 0.1,
+                                ])
 
     def set_menubar(self, window: QMainWindow) -> None:
         """メニューバーセット"""
@@ -125,7 +107,7 @@ class MainWindowUI:
 
         self.toolbar = QToolBar()
         self.toolbar.setWindowTitle("ToolBar")
-        window.addToolBar(self.toolbar)
+        window.addToolBar(Qt.ToolBarArea.LeftToolBarArea, self.toolbar)
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
 
         self.connect_action = QAction(QIcon(icons.CONNECT_ICON), '接続')
@@ -133,7 +115,6 @@ class MainWindowUI:
         self.run_action = QAction(QIcon(icons.RUN_ICON), '開始')
         self.stop_action = QAction(QIcon(icons.STOP_ICON), '終了')
         self.open_action = QAction(QIcon(icons.OPEN_ICON), '開く')
-        # self.history_action = QAction(QIcon(icons.HISTORY_ICON), 'History')
 
         self.toolbar.addAction(self.connect_action)
         self.toolbar.addSeparator()
@@ -144,23 +125,25 @@ class MainWindowUI:
         self.toolbar.addSeparator()
         self.toolbar.addAction(self.open_action)
         self.toolbar.addSeparator()
-        # self.toolbar.addAction(self.history_action)
-        # self.toolbar.addSeparator()
 
 
 if __name__ == '__main__':
     import sys
 
     from PySide6.QtWidgets import QApplication
+    from qt_material import apply_stylesheet
+    import qdarktheme
 
     app = QApplication(sys.argv)
+    # apply_stylesheet(app, theme='dark_cyan.xml')
+    app.setStyleSheet(qdarktheme.load_stylesheet())
     win = QMainWindow()
     ui = MainWindowUI()
     ui.setup_ui(win)
     win.show()
     # TODO テスト用
-    ui.add_tab('test', ['a', 'b'], 'T')
-    ui.add_tab('test', ['a', 'b'], 'T')
-    ui.add_tab('test', ['a', 'b'], 'T')
+    # ui.add_tab('test', ['a', 'b'], 'T')
+    # ui.add_tab('test', ['a', 'b'], 'T')
+    # ui.add_tab('test', ['a', 'b'], 'T')
 
     sys.exit(app.exec())

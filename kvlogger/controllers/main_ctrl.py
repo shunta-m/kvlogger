@@ -31,7 +31,7 @@ class MainController:
 
         # テーブルモデル作成
         table_model: wi.CurrentValueModel = wi.CurrentValueModel(self.model.config.all_items_name)
-        self.ui.current_table.setModel(table_model)
+        self.ui.values_table.setModel(table_model)
         # tab
         for section in self.model.config.measure_sections:
             items: List[str] = self.model.config.get_section_items_name(section)

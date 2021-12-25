@@ -1,19 +1,16 @@
 """UIで使用するウィジットアイテム"""
 import datetime as dt
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
-import pandas as pd
 from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             Signal, Slot)
 from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QFrame,
+from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox,
                                QHBoxLayout, QItemDelegate, QHeaderView,
-                               QLabel, QListWidget, QProgressBar,
-                               QPushButton, QListWidgetItem, QSplitter,
-                               QStyleOptionViewItem, QTableView, QTextEdit, QVBoxLayout, QWidget)
+                               QListWidget, QListWidgetItem, QStyleOptionViewItem,
+                               QTableView, QVBoxLayout, QWidget)
 
-from kvlogger.views import CurveStatus
 from kvlogger.views import graph_items as gi
 from kvlogger.views import style
 
@@ -120,113 +117,9 @@ class CurrentValueModel(QAbstractTableModel):
         return 1
 
 
-class DataFrameModel(QAbstractTableModel):
-    """pd.DataFrameをモデルにするTableModel
-
-    Attributes
-    ----------
-    data_frame: pd.DataFrame
-        モデルにするデータフレーム
-    """
-
-    def __init__(self, data_frame: pd.DataFrame, parent=None) -> None:
-        """初期化処理
-
-        Parameters
-        ----------
-        data_frame: pd.DataFrame
-            モデルにするデータフレーム
-        """
-
-        self.data_frame: pd.DataFrame = data_frame
-        super(DataFrameModel, self).__init__(parent)
-
-    def columnCount(self, parent: QModelIndex = ...) -> int:
-        """列数を返す
-
-        Returns
-        ----------
-        columnCount: int
-            列数
-        """
-
-        return self.data_frame.shape[1]
-
-    def data(self, index: QModelIndex, role: int = 0) -> Any:
-        """ビューが指定している座標のデータを返す
-
-        Parameters
-        ----------
-        index: QtCore.QModelIndex
-            ビューが要求しているデータの座標
-        role: int default=0
-            要求しているデータ形式. 0でDisplayRole(文字列).
-            表示中のデータを文字列で要求している.
-
-        Returns
-        ----------
-        data: str
-            ビューに要求されたデータ
-        """
-
-        if not index.isValid():
-            return
-
-        if role == Qt.DisplayRole:
-            return float(self.data_frame.iloc[index.row(), index.column()])
-
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> str:
-        """sectionで指定したカラムインデックスの値を返す
-
-        Parameters
-        ----------
-        section: int
-            カラムインデックス
-        orientation: QtCore.Qt.Orientation
-            ヘッダーの向き
-        role: int default=0
-            要求しているデータ形式. 0でDisplayRole(文字列).
-            表示中のデータを文字列で要求している.
-
-        Returns
-        -------
-        headerData: str
-            ヘッダー
-        """
-
-        if orientation == Qt.Orientation.Horizontal and role == 0:
-            return str(self.data_frame.columns[section])
-
-        if orientation == Qt.Orientation.Vertical and role == 0:
-            return str(self.data_frame.index[section])
-
-    def rowCount(self, parent: QModelIndex = ...) -> int:
-        """行数を返す
-
-        Returns
-        ----------
-        rowCount: int
-            行数
-        """
-
-        return self.data_frame.shape[0]
-
-    def reset_data(self, data: pd.DataFrame) -> None:
-        """モデルを再定義する
-
-        Parameters
-        ----------
-        data: pd.DataFrame
-            新しくモデルにするデータフレーム
-        """
-
-        self.beginResetModel()
-        self.data_frame = data.copy()
-        self.endResetModel()
-
-
 class AlignDelegate(QItemDelegate):
     """文字、数字によって左寄せか右寄せかを変える"""
+
     def paint(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex):
         type_cell = type(index.data())
         if type_cell is str:
@@ -265,17 +158,24 @@ class StretchTableView(QTableView):
             h_header.setSectionResizeMode(QHeaderView.Stretch)
 
 
-class LegendCheckBox(QCheckBox):
+class IndexCheckBox(QCheckBox):
     """グラフ曲線のshow/hideを変更する為の凡例チェックボックス
     QtWidgets.QListWidgetに追加して使う
 
     Attributes
     ----------
     idx: int
-        QListWidgetの何行目に追加したかを記憶
+        自身の番号
+    color: str
+        インジゲーターの表示色
+
+    Signal
+    -----
+    indexStateChanged
+        状態が変わった時、自身の番号と状態を送信
     """
 
-    statusChanged = Signal(int, CurveStatus)
+    indexStateChanged = Signal(int, bool)
 
     def __init__(self, idx: int, color: str, *args, **kwargs) -> None:
         """初期化処理
@@ -283,56 +183,49 @@ class LegendCheckBox(QCheckBox):
         Parameters
         ----------
         idx: int
-            QListWidgetの何行目に追加したか
-        color: str
-            インジケーターの色表示
+            自身の番号
+        color: Optional[str]
+            インジケーターの表示色
         """
 
         self.idx: int = idx
         self.color: str = color
-        self.status: CurveStatus = CurveStatus.VISIBLE
 
-        super(LegendCheckBox, self).__init__(*args, **kwargs)
-        self.setStyleSheet(style.curve_check(color, self.status.value))
-        self.stateChanged.connect(self.changed_check_color)
+        super(IndexCheckBox, self).__init__(*args, **kwargs)
+        self.setStyleSheet(style.changed_checkbox_style(color, True))
+        self.stateChanged.connect(self.emit_changed_state)
 
     @Slot()
-    def changed_check_color(self) -> None:
-        """チェックボックスの状態を判断して色を変える"""
+    def emit_changed_state(self) -> None:
+        """
+        チェックボックスの状態を判断してindexStateChangedを送信する.
+        stateがTrueの時、curveを表示する.
+        """
 
-        if self.status == CurveStatus.VISIBLE:
-            self.status = CurveStatus.CURVE_ONLY
-        elif self.status == CurveStatus.CURVE_ONLY:
-            self.status = CurveStatus.INVISIBLE
+        state: bool = self.isChecked()
+        if state:
+            self.setStyleSheet(style.changed_checkbox_style(self.color, state))
         else:
-            self.status = CurveStatus.VISIBLE
-
-        self.emit_status_changed()
-
-    def emit_status_changed(self) -> None:
-        """statusChanged送信用"""
-
-        self.setStyleSheet(style.curve_check(self.color, self.status.value))
-        self.statusChanged.emit(self.idx, self.status)
+            self.setStyleSheet(style.changed_checkbox_style(self.color, state))
+        self.indexStateChanged.emit(self.idx, state)
 
 
-class LegendListWidget(QListWidget):
-    """グラフ曲線のshow/hideを変更するチェックボックスを格納するリストウィジット
+class CheckListWidget(QListWidget):
+    """グラフ曲線のshow/hideを変更するチェックボックスを格納するリストウィジット"""
 
-    Attributes
-    ----------
-    check_list: List[LegendCheckBox]
-        チェックボックス格納
-    """
-
-    checkStatusChanged = Signal(int, CurveStatus)
+    checkStateChanged = Signal(int, bool)
 
     def __init__(self, *args, **kwargs) -> None:
-        """初期化処理"""
+        """初期化処理
 
-        self.check_list: List[LegendCheckBox] = []
+        Parameters
+        ----------
+        ch: int
+            チャンネル番号
+        """
 
-        super(LegendListWidget, self).__init__(*args, **kwargs)
+        self.check_list: List[IndexCheckBox] = []
+        super(CheckListWidget, self).__init__(*args, **kwargs)
         self.add_all_checkbox()
 
     def add_all_checkbox(self) -> None:
@@ -340,179 +233,100 @@ class LegendListWidget(QListWidget):
 
         self.add_checkbox(-1, '#000', 'all')
 
-    def add_checkbox(self, idx: int, color: str, label: str) -> None:
+    def add_checkbox(self, idx: int, color: str, text: str) -> None:
         """LegendCheckBoxを追加する
 
         Parameters
         ----------
         idx: int
-            チェックボックス番号
+            チェックボックスの番号
         color: str
-            チェックボックスインジケーターの色
-        label: str
-            チェックボックスラベル
+            チェックボックスのインジゲーターの色
+        text: str
+            チェックボックスのテキスト
         """
 
-        check: LegendCheckBox = LegendCheckBox(idx, color, label)
+        # ################# ListWidgetに追加するチェックボックス作成 ###################
         item = QListWidgetItem()
+        check = IndexCheckBox(idx, color, text)
+        check.setChecked(True)
+        check.indexStateChanged.connect(self.emit_changed_check)
+        # ####################################
 
         self.addItem(item)
         self.setItemWidget(item, check)
 
         self.check_list.append(check)
-        check.statusChanged.connect(self.changed_status)
 
-    def clear_checkbox(self) -> None:
-        """リスト内のチェックボックスを消去する"""
-
-        for check in self.check_list:
-            check.statusChanged.disconnect(self.changed_status)
-
-        self.clear()
-        self.check_list.clear()
-
-    @Slot(int, CurveStatus)
-    def changed_status(self, idx: int, status: CurveStatus) -> None:
+    # todo 変える必要あり(2021/12/19)
+    @Slot(int, bool)
+    def emit_changed_check(self, idx: int, state: bool) -> None:
         """チェックボックスの状態が変わったとき、チャンネル番号を追加してcheckStateChangedを発火
 
         Parameters
         ----------
         idx: int
             チェックボックスの行番号
-        status: CurveStatus
-            curveの状態
+        state: bool
+            チェックボックスの状態
         """
 
         if idx == -1:
             for check in self.check_list[1:]:
-                check.status = status
-                check.emit_status_changed()
+                check.setChecked(state)
         else:
-            self.checkStatusChanged.emit(idx, status)
+            self.checkStateChanged.emit(idx, state)
 
 
-class SectionMeasureWidget(QWidget):
-    """セクションごとの測定画面"""
+class CentralWidget(QWidget):
+    """画面中央のウィジット"""
 
-    def __init__(self, section: str, parameter: List[str], *args, **kwargs) -> None:
+    def __init__(self, data_name: Dict[str, List[str]], *args, **kwargs) -> None:
         """初期化処理
 
         Parameters
         ----------
-        section: str
-            セクション名
-        parameter: List[str]
-            セクション内のパラメタ
+        data_name: Dict[str, List[str]]
+            {y軸ラベル: [測定データ名, ...]}の辞書
         """
 
-        super(SectionMeasureWidget, self).__init__(*args, **kwargs)
+        super(CentralWidget, self).__init__(*args, **kwargs)
 
-        self.setup_ui(section, parameter)
+        self.setup_ui(data_name)
         self.connect_slot()
 
-    def setup_ui(self, ylabel: str, parameter: List[str]) -> None:
+    def setup_ui(self, data_name: Dict[str, List[str]]) -> None:
         """ui作成
 
         Parameters
         ----------
-        ylabel: str
-            グラフyラベル
-        parameter: List[str]
-            セクション内のパラメタ
+        data_name: Dict[str, List[str]]
+            {y軸ラベル: [測定データ名, ...]}の辞書
         """
 
-        splitter: QSplitter = QSplitter()
-        left_widget: QWidget = QWidget()
-        right_widget: QWidget = QWidget()
-
         main_layout = QHBoxLayout()
-        left_layout = QVBoxLayout()
         right_layout = QVBoxLayout()
 
-        main_layout.addWidget(splitter)
         self.setLayout(main_layout)
 
-        self.describe_view: StretchTableView = StretchTableView()
-        self.progress: QProgressBar = QProgressBar()
-        self.graph: gi.MainPlot = gi.MainPlot(ylabel)
-        self.legend_list: LegendListWidget = LegendListWidget()
+        self.plot: gi.CustomMultiAxisWidget = gi.CustomMultiAxisWidget(data_name)
+        self.legend_list = CheckListWidget()
 
-        left_layout.addWidget(QLabel('要約量'))
-        left_layout.addWidget(self.describe_view)
-        left_layout.addWidget(self.progress)
-        left_widget.setLayout(left_layout)
+        main_layout.addWidget(self.plot, 9)
+        main_layout.addLayout(right_layout, 1)
 
-        right_layout.addWidget(QLabel('凡例'))
         right_layout.addWidget(self.legend_list)
-        right_widget.setLayout(right_layout)
-
-        splitter.addWidget(left_widget)
-        splitter.addWidget(self.graph)
-        splitter.addWidget(right_widget)
-
-        splitter.setSizes([splitter.size().width() * 0.25,
-                           splitter.size().width() * 0.65,
-                           splitter.size().width() * 0.10])
 
         # 凡例とカーブ追加
-        colors: np.ndarray = style.curve_colors(len(parameter))
-        for idx, (item, color) in enumerate(zip(parameter, colors)):
-            self.graph.add_curve(idx, color, item)
-            self.legend_list.add_checkbox(idx, style.rgb_to_hex(color), item)
-
-        # describe_table初期表示
-        df: pd.DataFrame = pd.DataFrame(index=range(1), columns=parameter).fillna(0)
-        model: DataFrameModel = DataFrameModel(df.describe())
-        self.describe_view.setModel(model)
-        self.describe_view.set_stretch()
-
-        # # TODO sample plot 後で消す
-        # for curve in self.graph.curves.values():
-        #     r1 = int(np.random.rand() * 10)
-        #     r2 = r1 + 10
-        #     curve.set_data(np.random.randint(r1, r2, 100))
+        colors: np.ndarray = style.curve_colors(len(self.plot.data))
+        for idx, (plot_data_item, color) in enumerate(zip(self.plot.data, colors)):
+            plot_data_item.setPen(color)
+            self.legend_list.add_checkbox(idx, style.rgb_to_hex(color), plot_data_item.name())
 
     def connect_slot(self) -> None:
         """slot接続"""
 
-        self.legend_list.checkStatusChanged.connect(self.graph.switch_curve_visible)
-
-
-class MemoWidget(QWidget):
-    """memo用ウィジット"""
-
-    def __init__(self, *args, **kwargs) -> None:
-        """初期化処理"""
-
-        super(MemoWidget, self).__init__(*args, **kwargs)
-        self.memo = QTextEdit()
-        self.memo.setPlaceholderText('メモ')
-        self.timestamp = QPushButton('Timestamp')
-
-        layout = QHBoxLayout()
-        layout.addWidget(self.memo)
-        layout.addWidget(self.timestamp, alignment=Qt.AlignmentFlag.AlignBottom)
-        self.setLayout(layout)
-
-        self.timestamp.clicked.connect(self.stamp_time)
-
-    def stamp_time(self) -> None:
-        """memoにタイムスタンプ"""
-
-        now = dt.datetime.now().strftime('%Y/%m/%d %H:%M:%S\n')
-        self.memo.append(now)
-
-
-class StaticHLine(QFrame):
-    """横線"""
-
-    def __init__(self) -> None:
-        super(StaticHLine, self).__init__()
-        self.setFrameStyle(QFrame.HLine)
-        self.setFrameShadow(QFrame.Sunken)
-
-        self.setLineWidth(0)
-        self.setMidLineWidth(1)
+        self.legend_list.checkStateChanged.connect(self.plot.switch_curve_visible)
 
 
 if __name__ == '__main__':
@@ -520,44 +334,20 @@ if __name__ == '__main__':
 
     from PySide6.QtWidgets import QApplication
 
-    length = 10
-    items_ = [f"test{i}" for i in range(length)]
-
-
-    def section_window() -> None:
-        """セクション別画面表示用関数"""
-
-        app = QApplication(sys.argv)
-        win = SectionMeasureWidget('test', items_)
-        win.show()
-
-        sys.exit(app.exec())
-
-
-    def current_table():
-        """現在値表示用テーブル用変数"""
-
-        app = QApplication(sys.argv)
-        win = StretchTableView()
-        model = CurrentValueModel(items_)
-        win.setModel(model)
-        win.set_stretch('horizontal')
-        win.set_stretch('vertical')
-        win.show()
-
-        sys.exit(app.exec())
+    length = 100
+    items_ = {'test': [f"test{i}" for i in range(2)], 'test2': [f"test2_{i}" for i in range(5)],
+              'tes3': [f"test3_{i}" for i in range(2)], 'test4': [f"test4_{i}" for i in range(5)]}
 
 
     def test():
         app = QApplication(sys.argv)
 
         ta = StretchTableView()
-        model = CurrentValueModel(items_)
+        model = CurrentValueModel([key for key in items_.keys()])
         ta.setModel(model)
         ta.set_stretch()
-        # ta.set_orientation_size('vertical')
 
-        sec = SectionMeasureWidget('test', items_)
+        sec = CentralWidget(items_)
 
         win = QWidget()
         lay = QVBoxLayout()
@@ -565,10 +355,17 @@ if __name__ == '__main__':
         lay.addWidget(sec, 90)
         win.setLayout(lay)
 
+        sec.plot.data[0].setData([i * 1 for i in range(10)])
+        sec.plot.data[1].setData([i * 2 for i in range(10)])
+        sec.plot.data[2].setData([i * 3 for i in range(10)])
+        sec.plot.data[3].setData([i * 4 for i in range(10)])
+        sec.plot.data[4].setData([i * 4 for i in range(10)])
+        sec.plot.data[5].setData([i * 4 for i in range(10)])
+        sec.plot.data[6].setData([i * 4 for i in range(10)])
+        sec.plot.data[7].setData([i * 4 for i in range(10)])
+        sec.plot.data[8].setData([i * 4 for i in range(10)])
+
         win.show()
         sys.exit(app.exec())
 
-
-    # section_window()
-    # current_table()
     test()
