@@ -1,5 +1,6 @@
 """メイン画面"""
 import datetime as dt
+from typing import Dict, List
 
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QIcon, QResizeEvent
@@ -11,12 +12,18 @@ from kvlogger.views import icons, main_view_ui
 class MainWindow(QMainWindow):
     """メイン画面"""
 
-    def __init__(self, *args, **kwargs) -> None:
-        """初期化処理"""
+    def __init__(self, data_name: Dict[str, List[str]], *args, **kwargs) -> None:
+        """初期化処理
+
+        Parameters
+        -----
+        data_name: Dict[str, List[str]]
+            {y軸ラベル: [測定データ名, ...]}の辞書
+        """
 
         super(MainWindow, self).__init__(*args, **kwargs)
         self.ui = main_view_ui.MainWindowUI()
-        self.ui.setup_ui(self)
+        self.ui.setup_ui(self, data_name)
 
         self.ui.toolbar.toggleViewAction().setShortcut('Ctrl+V')
 

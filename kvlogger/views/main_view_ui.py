@@ -1,4 +1,5 @@
 """メイン画面UI"""
+from typing import Dict, List
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFont, QIcon
@@ -12,12 +13,14 @@ from kvlogger.views import widget_items as wi
 class MainWindowUI:
     """UI"""
 
-    def setup_ui(self, main_window: QMainWindow, width: int = 1400) -> None:
+    def setup_ui(self, main_window: QMainWindow, data_name: Dict[str, List[str]], width: int = 1400) -> None:
         """UIを設定する
         Parameters
         ----------
-        main_window: QtWidgets.QMainWindow
+        main_window: QMainWindow
             ウィジットを設置する画面
+        data_name: Dict[str, List[str]]
+            {y軸ラベル: [測定データ名, ...]}の辞書
         width: int default=1600
             画面幅
         """
@@ -31,23 +34,29 @@ class MainWindowUI:
         font.setPointSize(12)
         main_window.setFont(font)
 
-        self.make_widgets(main_window)
+        self.make_widgets(main_window, data_name)
         self.make_layouts()
         self.set_layout(main_window)
         self.set_statusbar(main_window)
         self.set_toolber(main_window)
         self.set_menubar(main_window)
 
-    def make_widgets(self, window: QMainWindow) -> None:
-        """UI作成"""
+    def make_widgets(self, window: QMainWindow, data_name: Dict[str, List[str]]) -> None:
+        """UI作成
+
+        Parameters
+        -----
+        window: QMainWindow
+                ウィジットを設置する画面
+        data_name: Dict[str, List[str]]
+            {y軸ラベル: [測定データ名, ...]}の辞書
+        """
 
         self.central_widget = QWidget(window)
         self.splitter = QSplitter(Qt.Orientation.Vertical)
 
         self.values_table = wi.StretchTableView()
-        self.plot = wi.CentralWidget({'test': [f"test{i}" for i in range(2)], 'test2': [f"test2_{i}" for i in range(5)],
-                                      'tes3': [f"test3_{i}" for i in range(2)],
-                                      'test4': [f"test4_{i}" for i in range(5)]})
+        self.plot = wi.CentralWidget(data_name)
         self.log_txt_edit = QTextEdit()
 
         # statusbar用

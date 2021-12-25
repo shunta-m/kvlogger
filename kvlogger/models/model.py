@@ -8,6 +8,6 @@ class Model:
     def __init__(self) -> None:
         """初期化処理"""
 
-        self.config = configs.InitConfig()
+        self.configs = configs.Configs()
         self.client = client.KVClient()
         self.settings = settings.Settings()

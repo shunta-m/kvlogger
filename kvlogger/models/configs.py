@@ -1,16 +1,21 @@
 """inifile読込"""
 import configparser
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
+
+import pandas as pd
 
 CURRENT_DIR = Path(__file__).parent
-CONFIG_FILE_PATH = str(CURRENT_DIR / r'config.ini')
+CONNECT_CONFIG_FILE_PATH = str(CURRENT_DIR / r'config.ini')
+DATA_CONFIG_FILE_PATH = str(CURRENT_DIR / r'config.csv')
 
 
-class InitConfig:
-    """コンフィグファイル情報保持"""
+class ConnectConfig:
+    """コンフィグファイル情報保持
+       demoモード, IPアドレス, ポート番号情報
+    """
 
-    def __init__(self, configfile: str = CONFIG_FILE_PATH) -> None:
+    def __init__(self, configfile: str = CONNECT_CONFIG_FILE_PATH) -> None:
         """初期化処理
 
         Parameters
@@ -23,13 +28,6 @@ class InitConfig:
         self.config.read(configfile, encoding='utf-8')
 
     @property
-    def all_items_name(self) -> List[str]:
-        """測定パラメタの名前を返す"""
-
-        items = [self.config.items(section) for section in self.measure_sections]
-        return [col[0] for col in sum(items, []) if col[0] != 'unit']
-
-    @property
     def demo(self) -> bool:
         """demoモード判別"""
 
@@ -37,12 +35,6 @@ class InitConfig:
         if section[0][1].upper() == 'TRUE':
             return True
         return False
-
-    @property
-    def measure_sections(self) -> List[str]:
-        """測定に使用するセクションを返す"""
-
-        return self.sections[2:]
 
     @property
     def sections(self) -> List[str]:
@@ -57,65 +49,58 @@ class InitConfig:
         section: List[Tuple[str, str]] = self.config.items(self.sections[1])
         return section[0][1], int(section[1][1])
 
+
+class MeasureConfig:
+    """測定データ設定値保持"""
+
+    def __init__(self, config_csv: str = DATA_CONFIG_FILE_PATH) -> None:
+        """初期化処理
+
+        Parameters
+        ----------
+        config_csv: str default=DATA_CONFIG_FILE_PATH
+            設定値保存ファイルのパス
+        """
+
+        self.measure_config: pd.DataFrame = pd.read_csv(config_csv, encoding='shift_jis', index_col=[0])
+
     @property
-    def unit(self) -> List[str]:
-        """測定パラメタのユニットを返す"""
+    def address_items(self) -> List[str]:
+        """アドレス項目"""
+        return self.measure_config.loc['address'].tolist()
 
-        items = [self.config.items(section) for section in self.measure_sections]
-        return [col[1] for col in sum(items, []) if col[0] == 'unit']
+    @property
+    def label_items(self) -> List[str]:
+        """ラベル項目"""
+        labels = self.measure_config.loc['label'].tolist()
+        return sorted(set(labels), key=labels.index)
 
-    def get_section_items_name(self, section: str) -> List[str]:
-        """指定したセクション内のアイテム名を返す
+    @property
+    def measurement_items(self) -> List[str]:
+        """測定項目"""
+        return self.measure_config.columns.tolist()
 
-        Parameters
-        ----------
-        section: str
-            セクション
+    @property
+    def label_measurement_items(self) -> Dict[str, List[str]]:
+        """ラベルと測定項目の辞書
+        {ラベル:[測定項目]}"""
 
-        Returns
-        ----------
-        names: List[str]
-            名前
-        """
+        result = {}
+        for label in self.label_items:
+            bool_l: List[bool] = self.measure_config.loc['label'] == label
+            result[label] = self.measure_config.columns[bool_l].tolist()
+        return result
 
-        items: List[Tuple[str, str]] = self.config.items(section)
-        return [col[0] for col in items if col[0] != 'unit']
 
-    def get_section_items_tn(self, section: str) -> List[str]:
-        """指定したセクション内のtype noを返す
+class Configs(ConnectConfig, MeasureConfig):
+    def __init__(self) -> None:
+        ConnectConfig.__init__(self)
+        MeasureConfig.__init__(self)
 
-        Parameters
-        ----------
-        section: str
-            セクション
 
-        Returns
-        ----------
-        tn: Tuple[str]
-            タイプと番号. ex) DM****
-        """
-
-        items: List[Tuple[str, str]] = self.config.items(section)
-        return [col[1] for col in items if col[0] != 'unit']
-
-    def get_measure_section_unit(self, section: str) -> str:
-        """指定したセクション内のunitを返す
-
-        Parameters
-        ----------
-        section: str
-            セクション
-
-        Returns
-        ----------
-        unit: str
-            単位
-        """
-
-        return self.config[section]['unit']
-
-# config = InitConfig()
-# sections = config.measure_sections
-# print(config.get_section_items_tn(sections[0]))
-# print(config.get_section_items_name(sections[0]))
-# print(config.get_measure_section_unit(sections[0]))
+if __name__ == '__main__':
+    # connect_config = ConnectConfig()
+    # measure_config = MeasureConfig()
+    configs = Configs()
+    print(configs.server)
+    print(configs.label_measurement_items)

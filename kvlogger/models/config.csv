@@ -1,0 +1,5 @@
+name,T1,T2,T3,T4,T5,T6,P1,P2,P3,P4,L1,L2,Flow,Freq,Heater,dewP
+address,DM2040,DM2050,DM2060,DM2070,DM2080,DM2090,DM2120,DM2130,DM2140,DM2150,DM2000,DM2010,DM2020,DM2110,DM1070,DM2100
+label,Temprature [K],Temprature [K],Temprature [K],Temprature [K],Temprature [K],Temprature [K],Pressure [kPa],Pressure [kPa],Pressure [kPa],Pressure [kPa],Level [%],Level [%],Flow [L/min],Frequency [Hz],Watt [W],DewP [oCdp]
+formula,-,-,-,-,-,-,-,-,-,-,-,-,-,-,x/50,-
+suffix,D,D,D,D,D,D,D,D,D,D,D,D,D,D,D,D

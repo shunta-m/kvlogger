@@ -25,18 +25,13 @@ class MainController:
 
         self.app = app
         self.model = model.Model()
-        self.view = mv.MainWindow()
+        self.view = mv.MainWindow(self.model.configs.label_measurement_items)
         # UIへアクセスする用のショートカット
         self.ui = self.view.ui
 
         # テーブルモデル作成
-        table_model: wi.CurrentValueModel = wi.CurrentValueModel(self.model.config.all_items_name)
+        table_model: wi.CurrentValueModel = wi.CurrentValueModel(self.model.configs.measurement_items)
         self.ui.values_table.setModel(table_model)
-        # tab
-        # for section in self.model.config.measure_sections:
-        #     items: List[str] = self.model.config.get_section_items_name(section)
-        #     unit: str = self.model.config.get_measure_section_unit(section)
-        #     self.ui.add_tab(section, items, unit)
 
         self.connect_slot()
 
@@ -51,7 +46,7 @@ class MainController:
         """keyenceデバイスと接続する"""
 
         dialog = cv.ConnectDialog()
-        result: Optional[Tuple[str, int]] = dialog.exec_dialog(self.model.config.server)
+        result: Optional[Tuple[str, int]] = dialog.exec_dialog(self.model.configs.server)
 
         if result is None:
             return
