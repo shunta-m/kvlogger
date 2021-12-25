@@ -4,6 +4,7 @@ from colour import Color
 import numpy as np
 from PySide6.QtGui import QFont
 
+
 #
 # def changed_checkbox_style(color: str, state: bool) -> str:
 #     """凡例用チェックボックスのスタイルシード
@@ -21,16 +22,34 @@ from PySide6.QtGui import QFont
 #     else:
 #         return f"""::indicator{{background-color: {color};}}
 #                    ::item{{background-color: #f08080;}}"""
-
-
 def changed_checkbox_style(color: str, flag: bool) -> str:
+    """凡例チェックボックスをクリックしたときのスタイル変更
+    dark theme のスタイルシートを一部無効にしている
+
+    Parameters
+    ----------
+    color
+    flag
+
+    Returns
+    -------
+
+    """
     if flag is True:
         return f"""QCheckBox {{font-size:12pt;}}
-                   QCheckBox::indicator {{Background-color: {color};}}
+                   QCheckBox::indicator {{margin: 0 0 2 10;
+                                          height: 10px;
+                                          width: 18px;
+                                          Background-color: {color};
+                                          image:url()}}
                 """
     else:
         return f"""QCheckBox {{font-size:12pt;background-color: #f08080;}}
-                       QCheckBox::indicator {{Background-color: {color};}}
+                   QCheckBox::indicator {{margin: 0 0 2 10;
+                                          height: 10px;
+                                          width: 18px;
+                                          Background-color: {color};
+                                          image:url()}}
                 """
 
 
