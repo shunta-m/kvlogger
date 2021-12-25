@@ -6,7 +6,7 @@ import numpy as np
 from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
                             Signal, Slot)
 from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox,
+from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QLabel,
                                QHBoxLayout, QItemDelegate, QHeaderView,
                                QListWidget, QListWidgetItem, QStyleOptionViewItem,
                                QTableView, QVBoxLayout, QWidget)
@@ -315,6 +315,7 @@ class CentralWidget(QWidget):
         main_layout.addWidget(self.plot, 9)
         main_layout.addLayout(right_layout, 1)
 
+        right_layout.addWidget(QLabel(style.text_size('visible / invisible')))
         right_layout.addWidget(self.legend_list)
 
         # 凡例とカーブ追加

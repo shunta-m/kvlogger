@@ -1,5 +1,4 @@
 """メイン画面UI"""
-from typing import List, Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction, QFont, QIcon
@@ -73,8 +72,8 @@ class MainWindowUI:
         self.splitter.addWidget(self.plot)
         self.splitter.addWidget(self.log_txt_edit)
 
-        self.splitter.setSizes([self.splitter.size().width() * 0.1,
-                                self.splitter.size().width() * 0.8,
+        self.splitter.setSizes([self.splitter.size().width() * 0.15,
+                                self.splitter.size().width() * 0.75,
                                 self.splitter.size().width() * 0.1,
                                 ])
 
@@ -131,19 +130,13 @@ if __name__ == '__main__':
     import sys
 
     from PySide6.QtWidgets import QApplication
-    from qt_material import apply_stylesheet
     import qdarktheme
 
     app = QApplication(sys.argv)
-    # apply_stylesheet(app, theme='dark_cyan.xml')
     app.setStyleSheet(qdarktheme.load_stylesheet())
     win = QMainWindow()
     ui = MainWindowUI()
     ui.setup_ui(win)
     win.show()
-    # TODO テスト用
-    # ui.add_tab('test', ['a', 'b'], 'T')
-    # ui.add_tab('test', ['a', 'b'], 'T')
-    # ui.add_tab('test', ['a', 'b'], 'T')
 
     sys.exit(app.exec())

@@ -121,8 +121,8 @@ def tag(name: str, fontsize: int):
     return _tag
 
 
-@tag('div', 16)  # 第2引数(25の部分)を変更すると文字サイズが変わる
-def curve_cursor(text) -> str:
+@tag('div', 14)  # 第2引数(25の部分)を変更すると文字サイズが変わる
+def text_size(text) -> str:
     return text
 
 
