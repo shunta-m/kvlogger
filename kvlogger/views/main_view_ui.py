@@ -84,6 +84,7 @@ class MainWindowUI:
         self.menubar.setToolTip('ツールバーの表示/非表示変更<br>ショートカット：Ctrl V')
         window.setMenuBar(self.menubar)
 
+        self.file_menu = self.menubar.addMenu('&File')
         self.view_menu = self.menubar.addMenu('&View')
         self.view_menu.addAction(self.toolbar.toggleViewAction())
 
@@ -93,13 +94,13 @@ class MainWindowUI:
         self.statusbar = QStatusBar()
         window.setStatusBar(self.statusbar)
 
-        self.statusbar.addPermanentWidget(QLabel('接続状態: '), )
-        self.statusbar.addPermanentWidget(self.connect_status_label, 4)
-        self.statusbar.addPermanentWidget(QLabel('設定: '), )
-        self.statusbar.addPermanentWidget(self.settings_status_label, 4)
-        self.statusbar.addPermanentWidget(QLabel('開始時刻: '), )
-        self.statusbar.addPermanentWidget(self.stime_label, 4)
-        self.statusbar.addPermanentWidget(self.clock_label, 1)
+        # self.statusbar.addPermanentWidget(QLabel('接続状態: '), )
+        # self.statusbar.addPermanentWidget(self.connect_status_label, 4)
+        # self.statusbar.addPermanentWidget(QLabel('設定: '), )
+        # self.statusbar.addPermanentWidget(self.settings_status_label, 4)
+        # self.statusbar.addPermanentWidget(QLabel('開始時刻: '), )
+        # self.statusbar.addPermanentWidget(self.stime_label, 4)
+        self.statusbar.addPermanentWidget(self.clock_label)
 
     def set_toolber(self, window: QMainWindow) -> None:
         """ツールバーセット"""
@@ -113,7 +114,7 @@ class MainWindowUI:
         self.settings_action = QAction(QIcon(icons.SETTINGS_ICON), '設定')
         self.run_action = QAction(QIcon(icons.RUN_ICON), '開始')
         self.stop_action = QAction(QIcon(icons.STOP_ICON), '終了')
-        self.open_action = QAction(QIcon(icons.OPEN_ICON), '開く')
+        # self.open_action = QAction(QIcon(icons.OPEN_ICON), '開く')
 
         self.toolbar.addAction(self.connect_action)
         self.toolbar.addSeparator()
@@ -122,8 +123,8 @@ class MainWindowUI:
         self.toolbar.addAction(self.run_action)
         self.toolbar.addAction(self.stop_action)
         self.toolbar.addSeparator()
-        self.toolbar.addAction(self.open_action)
-        self.toolbar.addSeparator()
+        # self.toolbar.addAction(self.open_action)
+        # self.toolbar.addSeparator()
 
 
 if __name__ == '__main__':
