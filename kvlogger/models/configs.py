@@ -70,13 +70,18 @@ class MeasureConfig:
         return self.measure_config.loc['address'].tolist()
 
     @property
+    def format_items(self) -> List[str]:
+        """データ形式項目"""
+        return self.measure_config.loc['format'].tolist()
+
+    @property
     def label_items(self) -> List[str]:
         """ラベル項目"""
         labels = self.measure_config.loc['label'].tolist()
         return sorted(set(labels), key=labels.index)
 
     @property
-    def measurement_items(self) -> List[str]:
+    def measure_name_items(self) -> List[str]:
         """測定項目"""
         return self.measure_config.columns.tolist()
 
@@ -103,4 +108,4 @@ if __name__ == '__main__':
     # measure_config = MeasureConfig()
     configs = Configs()
     print(configs.server)
-    print(configs.label_measurement_items)
+    print(configs.format_items)
