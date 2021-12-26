@@ -12,18 +12,20 @@ from kvlogger.views import icons, main_view_ui
 class MainWindow(QMainWindow):
     """メイン画面"""
 
-    def __init__(self, data_name: Dict[str, List[str]], *args, **kwargs) -> None:
+    def __init__(self, data_name: Dict[str, List[str]], data_maxlen: int, *args, **kwargs) -> None:
         """初期化処理
 
         Parameters
         -----
         data_name: Dict[str, List[str]]
             {y軸ラベル: [測定データ名, ...]}の辞書
+        data_maxlen: int
+            表示データ最大長
         """
 
         super(MainWindow, self).__init__(*args, **kwargs)
         self.ui = main_view_ui.MainWindowUI()
-        self.ui.setup_ui(self, data_name)
+        self.ui.setup_ui(self, data_name, data_maxlen)
 
         self.ui.toolbar.toggleViewAction().setShortcut('Ctrl+V')
 

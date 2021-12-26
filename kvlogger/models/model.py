@@ -9,5 +9,7 @@ class Model:
         """初期化処理"""
 
         self.configs = configs.Configs()
-        self.client = client.KVClient()
+        self.client = client.KVClient(self.configs.measure_name_items,
+                                      self.configs.address_items,
+                                      self.configs.format_items)
         self.settings = settings.Settings()

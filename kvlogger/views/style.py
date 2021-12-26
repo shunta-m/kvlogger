@@ -1,27 +1,11 @@
 """UIのスタイルを記載"""
 from typing import Sequence
-from colour import Color
+
 import numpy as np
 from PySide6.QtGui import QFont
+import seaborn as sns
 
 
-#
-# def changed_checkbox_style(color: str, state: bool) -> str:
-#     """凡例用チェックボックスのスタイルシード
-#
-#     Parameters
-#     ----------
-#     color: str
-#         インジゲーターの色
-#     state: bool
-#         チェックボックスの状態
-#     """
-#
-#     if state is False:
-#         return f"""::indicator{{background-color: {color};}}"""
-#     else:
-#         return f"""::indicator{{background-color: {color};}}
-#                    ::item{{background-color: #f08080;}}"""
 def changed_checkbox_style(color: str, flag: bool) -> str:
     """凡例チェックボックスをクリックしたときのスタイル変更
     dark theme のスタイルシートを一部無効にしている
@@ -72,17 +56,13 @@ def rgb_to_hex(rgb: Sequence) -> str:
     return '#' + r + g + b
 
 
-def curve_colors(num: int, start: str = '#c40', end: str = '#04c') -> np.ndarray:
+def curve_colors(num: int) -> np.ndarray:
     """curveの色を作成
 
     Parameters
     ----------
     num: int
         色を作成する数
-    start: str default='#f00'
-        最初の色
-    end: str default='#00f'
-        最後の色
 
     Returns
     ----------
@@ -90,10 +70,7 @@ def curve_colors(num: int, start: str = '#c40', end: str = '#04c') -> np.ndarray
         色. [(r, g, b), (r, g, b), ...]
     """
 
-    start_c: Color = Color(start)
-    end_c: Color = Color(end)
-    colors: np.ndarray = np.array([color.get_rgb() for color in start_c.range_to(end_c, num)]) * 255
-
+    colors: np.ndarray = np.array(sns.color_palette(n_colors=num)) * 255
     return colors.astype(np.uint8)
 
 

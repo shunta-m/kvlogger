@@ -194,6 +194,8 @@ class MultiAxisWidget(pg.GraphicsLayoutWidget):
         -----
         data_name: Dict[str, List[str]]
             生成するY軸のラベルをキーに持つ辞書. 値は追加するcurveの名前のリスト
+        data_maxlen: int
+            表示データ最大長
         top_items: Optional[list] default=None
             グラフ上部に配置したいもの
         yspacer_count: int default=1
@@ -278,7 +280,8 @@ class MultiAxisWidget(pg.GraphicsLayoutWidget):
 
         if self.current_len == self.data_maxlen - 1:
             self.changedPlotMethod.emit()
-            self.reset_range()
+            for vb in self.view_boxes:
+                vb.enableAutoRange(axis=pg.ViewBox.XAxis, enable=True)
 
     def set_data_maxlen(self, values: list) -> None:
         """データ入力.
@@ -314,6 +317,7 @@ class MultiAxisWidget(pg.GraphicsLayoutWidget):
         plot_vb = self.plot.vb
         for vb in self.view_boxes:
             vb.setGeometry(plot_vb.sceneBoundingRect())
+            vb.enableAutoRange(axis=pg.ViewBox.XAxis, enable=True)
 
 
 class CustomMultiAxisWidget(MultiAxisWidget):
@@ -415,13 +419,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = CustomMultiAxisWidget(test_d, len_)
 
-    window.data[0].setPen(pg.mkPen('r'))
-    window.data[1].setPen(pg.mkPen('b'))
-    window.data[2].setPen(pg.mkPen('g'))
-    window.data[3].setPen(pg.mkPen('#ff0'))
-    window.data[4].setPen(pg.mkPen('#f0f'))
-    window.data[5].setPen(pg.mkPen('#0ff'))
-
 
     def update2():
         l = []
@@ -450,18 +447,6 @@ if __name__ == '__main__':
 
 
     window.changedPlotMethod.connect(switch)
-
-    #
-    #
-    # window.set_multi_value([data1, data2, data3, data4, data5, data6])
-    # data6, data7, data8, data9, data10])
-
-    # for i, color in enumerate(['b', 'g', 'r']):
-    #     window.yaxes.yaxes[i].setPen(pg.mkPen(color))
-    #     window.data[i].setPen(pg.mkPen(color))
-
-    # window.update_views()
-    # window.reset_range()
 
     window.show()
 

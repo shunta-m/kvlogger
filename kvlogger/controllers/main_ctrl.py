@@ -25,12 +25,12 @@ class MainController:
 
         self.app = app
         self.model = model.Model()
-        self.view = mv.MainWindow(self.model.configs.label_measurement_items)
+        self.view = mv.MainWindow(self.model.configs.label_measurement_items, 100)
         # UIへアクセスする用のショートカット
         self.ui = self.view.ui
 
         # テーブルモデル作成
-        table_model: wi.CurrentValueModel = wi.CurrentValueModel(self.model.configs.measurement_items)
+        table_model: wi.CurrentValueModel = wi.CurrentValueModel(self.model.configs.measure_name_items)
         self.ui.values_table.setModel(table_model)
 
         self.connect_slot()
@@ -78,7 +78,7 @@ class MainController:
     def settings(self) -> None:
         """測定設定"""
 
-        units = [unit.trend_value for unit in model.settings.Unit]
+        units = [unit.value for unit in model.settings.Unit]
         dialog = sv.SettingsDialog(units, self.model.settings.interval_unit)
 
         now_settings = (self.model.settings.save_dir,
@@ -122,3 +122,48 @@ class MainController:
 
         signal.disconnect()
         signal.connect(new)
+
+
+if __name__ == '__main__':
+    import sys
+
+    import numpy as np
+    import qdarktheme
+    import pyqtgraph as pg
+
+    app = QApplication(sys.argv)
+    app.setStyleSheet(qdarktheme.load_stylesheet())
+
+    controller = MainController(app)
+
+
+    def update2():
+        l = []
+        for i in range(14):
+            l.append(np.random.normal())
+
+        controller.view.ui.center_widget.plot.set_data(l)
+
+
+    def update3():
+        l = []
+        for i in range(14):
+            l.append(np.random.normal())
+
+        controller.view.ui.center_widget.plot.set_data_maxlen(l)
+
+
+    def switch():
+        timer.timeout.disconnect()
+        timer.timeout.connect(update3)
+
+
+    controller.view.ui.center_widget.plot.changedPlotMethod.connect(switch)
+
+    controller.start()
+
+    timer = pg.QtCore.QTimer()
+    timer.timeout.connect(update2)
+    timer.start(1000)
+
+    sys.exit(app.exec())

@@ -13,7 +13,8 @@ from kvlogger.views import widget_items as wi
 class MainWindowUI:
     """UI"""
 
-    def setup_ui(self, main_window: QMainWindow, data_name: Dict[str, List[str]], width: int = 1400) -> None:
+    def setup_ui(self, main_window: QMainWindow, data_name: Dict[str, List[str]], data_maxlen: int,
+                 width: int = 1400) -> None:
         """UIを設定する
         Parameters
         ----------
@@ -21,6 +22,8 @@ class MainWindowUI:
             ウィジットを設置する画面
         data_name: Dict[str, List[str]]
             {y軸ラベル: [測定データ名, ...]}の辞書
+        data_maxlen: int
+            表示データ最大長
         width: int default=1600
             画面幅
         """
@@ -34,14 +37,14 @@ class MainWindowUI:
         font.setPointSize(12)
         main_window.setFont(font)
 
-        self.make_widgets(main_window, data_name)
+        self.make_widgets(main_window, data_name, data_maxlen)
         self.make_layouts()
         self.set_layout(main_window)
         self.set_statusbar(main_window)
         self.set_toolber(main_window)
         self.set_menubar(main_window)
 
-    def make_widgets(self, window: QMainWindow, data_name: Dict[str, List[str]]) -> None:
+    def make_widgets(self, window: QMainWindow, data_name: Dict[str, List[str]], data_maxlen: int) -> None:
         """UI作成
 
         Parameters
@@ -50,13 +53,15 @@ class MainWindowUI:
                 ウィジットを設置する画面
         data_name: Dict[str, List[str]]
             {y軸ラベル: [測定データ名, ...]}の辞書
+        data_maxlen: int
+            表示データ最大長
         """
 
         self.central_widget = QWidget(window)
         self.splitter = QSplitter(Qt.Orientation.Vertical)
 
         self.values_table = wi.StretchTableView()
-        self.plot = wi.CentralWidget(data_name)
+        self.center_widget = wi.CentralWidget(data_name, data_maxlen)
         self.log_txt_edit = QTextEdit()
 
         # statusbar用
@@ -78,7 +83,7 @@ class MainWindowUI:
         self.main_layout.addWidget(self.splitter)
 
         self.splitter.addWidget(self.values_table)
-        self.splitter.addWidget(self.plot)
+        self.splitter.addWidget(self.center_widget)
         self.splitter.addWidget(self.log_txt_edit)
 
         self.splitter.setSizes([self.splitter.size().width() * 0.15,
@@ -146,7 +151,7 @@ if __name__ == '__main__':
     app.setStyleSheet(qdarktheme.load_stylesheet())
     win = QMainWindow()
     ui = MainWindowUI()
-    ui.setup_ui(win)
+    ui.setup_ui(win, {'test': ['a']}, 50)
     win.show()
 
     sys.exit(app.exec())
