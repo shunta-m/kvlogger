@@ -1,9 +1,9 @@
 """UIで使用するウィジットアイテム"""
 import datetime as dt
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt,
+from PySide6.QtCore import (QAbstractTableModel, QModelIndex, Qt, QTimer,
                             Signal, Slot)
 from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (QAbstractScrollArea, QCheckBox, QLabel,
@@ -15,21 +15,18 @@ from kvlogger.views import graph_items as gi
 from kvlogger.views import style
 
 
-class CurrentValue:
-    """現在値を保持する"""
+class TableValue:
+    """テーブルの値を保持する"""
 
-    def __init__(self, col: str, trend_value: float = 0.0, line_value: float = 0.0) -> None:
+    def __init__(self, trend_value: float = 0.0, line_value: float = 0.0) -> None:
         """初期化処理
 
         Parameters
         ----------
-        col: str
-            カラム名
         trend_value: float default=0.0
             値
         """
 
-        self.col = col
         self.trend_value = trend_value
         self.line_value = line_value
 
@@ -51,7 +48,8 @@ class CurrentValueModel(QAbstractTableModel):
 
         super(CurrentValueModel, self).__init__(*args, **kwargs)
 
-        self._data = [CurrentValue(col) for col in columns]
+        self._cols = columns
+        self._data = {col: TableValue() for col in columns}
 
     def columnCount(self, parent: QModelIndex = ...) -> int:
         """列数を返す
@@ -85,7 +83,8 @@ class CurrentValueModel(QAbstractTableModel):
             return
 
         if role == 0:
-            return self._data[index.column()].to_list()[index.row()]
+            col = self._cols[index.column()]
+            return self._data[col].to_list()[index.row()]
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = 0) -> str:
         """sectionで指定したカラムインデックスの値を返す
@@ -107,7 +106,7 @@ class CurrentValueModel(QAbstractTableModel):
         """
 
         if orientation == Qt.Orientation.Horizontal and role == 0:
-            return str(self._data[section].col)
+            return str(self._cols[section])
 
         if orientation == Qt.Orientation.Vertical and role == 0:
             return str(['trend', 'line'][section])
@@ -122,6 +121,16 @@ class CurrentValueModel(QAbstractTableModel):
         """
 
         return 2
+
+    def set_trend_value(self, values: Dict[str, Union[int, float]]) -> None:
+        for i, (col, value) in enumerate(values.items()):
+            self._data[col].trend_value = value
+        self.dataChanged.emit(QModelIndex(), QModelIndex())
+
+    def set_line_value(self, values: Dict[str, Union[int, float]]) -> None:
+        for col, value in values.items():
+            self._data[col].line_value = value
+        self.dataChanged.emit(QModelIndex(), QModelIndex())
 
 
 class AlignDelegate(QItemDelegate):
@@ -288,27 +297,31 @@ class CheckListWidget(QListWidget):
 class CentralWidget(QWidget):
     """画面中央のウィジット"""
 
-    def __init__(self, data_name: Dict[str, List[str]], *args, **kwargs) -> None:
+    def __init__(self, data_name: Dict[str, List[str]], data_maxlen: int, *args, **kwargs) -> None:
         """初期化処理
 
         Parameters
         ----------
         data_name: Dict[str, List[str]]
             {y軸ラベル: [測定データ名, ...]}の辞書
+        data_maxlen: int
+            表示データ最大長
         """
 
         super(CentralWidget, self).__init__(*args, **kwargs)
 
-        self.setup_ui(data_name)
+        self.setup_ui(data_name, data_maxlen)
         self.connect_slot()
 
-    def setup_ui(self, data_name: Dict[str, List[str]]) -> None:
+    def setup_ui(self, data_name: Dict[str, List[str]], data_maxlen: int) -> None:
         """ui作成
 
         Parameters
         ----------
         data_name: Dict[str, List[str]]
             {y軸ラベル: [測定データ名, ...]}の辞書
+        data_maxlen: int
+            表示データ最大長
         """
 
         main_layout = QHBoxLayout()
@@ -316,7 +329,7 @@ class CentralWidget(QWidget):
 
         self.setLayout(main_layout)
 
-        self.plot: gi.CustomMultiAxisWidget = gi.CustomMultiAxisWidget(data_name, 1000)
+        self.plot: gi.CustomMultiAxisWidget = gi.CustomMultiAxisWidget(data_name, data_maxlen)
         self.legend_list = CheckListWidget()
 
         main_layout.addWidget(self.plot, 9)
@@ -343,8 +356,7 @@ if __name__ == '__main__':
     from PySide6.QtWidgets import QApplication
 
     length = 100
-    items_ = {'test': [f"test{i}" for i in range(2)], 'test2': [f"test2_{i}" for i in range(5)],
-              'tes3': [f"test3_{i}" for i in range(2)], 'test4': [f"test4_{i}" for i in range(5)]}
+    items_ = {f"test{i}": [f"value{i}_{j}" for j in range(3)] for i in range(3)}
 
 
     def test():
@@ -355,7 +367,7 @@ if __name__ == '__main__':
         ta.setModel(model)
         ta.set_stretch()
 
-        sec = CentralWidget(items_)
+        sec = CentralWidget(items_, 500)
 
         win = QWidget()
         lay = QVBoxLayout()
@@ -374,6 +386,16 @@ if __name__ == '__main__':
         sec.plot.data[8].setData([i * 4 for i in range(10)])
 
         win.show()
+
+        def ta_test():
+            table_test = {f"test{i}": np.random.randint(10) for i in range(3)}
+            model.set_trend_value(table_test)
+
+        timer = QTimer()
+        timer.setInterval(200)
+        timer.timeout.connect(ta_test)
+        timer.start()
+
         sys.exit(app.exec())
 
 
