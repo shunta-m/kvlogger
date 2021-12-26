@@ -50,11 +50,15 @@ class SettingsUI:
 
         self.interval_unit_combo = QComboBox()
 
-        self.data_point_spin = QSpinBox()
-        self.data_point_spin.setMaximum(100000)
-        self.data_point_spin.setValue(10000)
+        self.view_point_spin = QSpinBox()
+        self.view_point_spin.setMaximum(99999)
+        self.view_point_spin.setValue(1000)
 
-        self.btns = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, dialog)
+        self.save_point_spin = QSpinBox()
+        self.save_point_spin.setMaximum(10000)
+        self.save_point_spin.setValue(10000)
+
+        self.btns = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Ok | QDialogButtonBox.Cancel, Qt.Horizontal, dialog)
         self.btns.accepted.connect(dialog.accept)
         self.btns.rejected.connect(dialog.reject)
 
@@ -73,7 +77,7 @@ class SettingsUI:
 
         self.main_lay.addLayout(self.grid_lay)
         self.main_lay.addSpacing(10)
-        self.main_lay.addWidget(wi.StaticHLine())
+        # self.main_lay.addWidget(wi.StaticHLine())
         self.main_lay.addWidget(self.btns)
         self.main_lay.addStretch()
 
@@ -84,8 +88,10 @@ class SettingsUI:
         self.grid_lay.addWidget(self.file_name_edit, 1, 1)
         self.grid_lay.addWidget(QLabel('測定間隔'), 2, 0)
         self.grid_lay.addLayout(self.interval_lay, 2, 1, alignment=Qt.AlignLeft)
-        self.grid_lay.addWidget(QLabel('ファイル保存点数'), 3, 0)
-        self.grid_lay.addWidget(self.data_point_spin, 3, 1, alignment=Qt.AlignLeft)
+        self.grid_lay.addWidget(QLabel('データ描画点数'), 3, 0)
+        self.grid_lay.addWidget(self.view_point_spin, 3, 1, alignment=Qt.AlignLeft)
+        self.grid_lay.addWidget(QLabel('ファイル保存点数'), 4, 0)
+        self.grid_lay.addWidget(self.save_point_spin, 4, 1, alignment=Qt.AlignLeft)
 
         self.interval_lay.addWidget(self.interval_spin)
         self.interval_lay.addWidget(self.interval_unit_combo)
@@ -94,8 +100,10 @@ class SettingsUI:
 if __name__ == '__main__':
     import sys
     from PySide6.QtWidgets import QApplication
+    import qdarktheme
 
     app = QApplication(sys.argv)
+    app.setStyleSheet(qdarktheme.load_stylesheet())
 
     dia = QDialog()
     ui = SettingsUI()

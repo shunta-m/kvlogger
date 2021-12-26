@@ -72,7 +72,7 @@ class SettingsDialog(QDialog):
         self.ui.save_dir_edit.setText(str(save_dir))
         self.ui.interval_spin.setValue(interval)
         self.ui.interval_unit_combo.setCurrentText(unit)
-        self.ui.data_point_spin.setValue(data_points)
+        self.ui.save_point_spin.setValue(data_points)
 
         result = self.exec()
 
@@ -81,7 +81,7 @@ class SettingsDialog(QDialog):
             filename: str = self.ui.file_name_edit.text()
             interval: float = self.ui.interval_spin.trend_value()
             unit: str = self.ui.interval_unit_combo.currentText()
-            data_points: int = self.ui.data_point_spin.trend_value()
+            data_points: int = self.ui.save_point_spin.trend_value()
 
             return save_dir, filename, interval, unit, data_points
 
